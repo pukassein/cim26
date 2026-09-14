@@ -5,7 +5,10 @@ import './styles.css'
 import './overrides.css'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'missing-publishable-key'
+const supabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 const eventConfig = { acronym: 'CIM26', name: 'Congreso Internacional Multidisciplinario', institution: 'Universidad Católica', campus: 'Campus Alto Paraná', dates: '02 — 06 de noviembre de 2026', email: 'congresomultidisciplinario.ap@uc.edu.py', registrationUrl: 'https://cim2026indico.tail8e68c3.ts.net/event/1/', abstractsUrl: null as string | null, channelUrl: null as string | null }
 const logoMarkUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/logo_CIM.PNG'
@@ -24,7 +27,7 @@ type ProgramItem = { id:string; day:number; date:string; time:string; title:stri
 type CommitteeMember = { id:string; name:string; role:string; specialty?:string; institution:string; country?:string; biography?:string; photo_url?:string; email?:string; thematic_area_id?:string; is_published?:boolean; sort_order?:number }
 type Content = { speakers:Speaker[]; program:ProgramItem[]; committee:CommitteeMember[] }
 const initialContent: Content = { speakers:[], program:[], committee:[] }
-async function loadContent(): Promise<Content> { const [speakers,program,committee] = await Promise.all([supabase.from('speakers').select('id,name,institution,photo_url').eq('is_published',true).order('sort_order'),supabase.from('program_items').select('id,event_date,start_time,title,description').eq('is_published',true).order('event_date').order('sort_order'),supabase.from('scientific_committee').select('*').order('sort_order')]); return { speakers:(speakers.data||[]).map(x=>({...x,role:'',photo:x.photo_url||''})), program:(program.data||[]).map(x=>({...x,day:Math.max(0,Math.round((new Date(x.event_date+'T00:00:00').getTime()-new Date('2026-11-02T00:00:00').getTime())/86400000)),time:x.start_time?.slice(0,5)||'',detail:x.description||''})), committee:committee.data||[]} }
+async function loadContent(): Promise<Content> { if (!supabaseConfigured) return initialContent; const [speakers,program,committee] = await Promise.all([supabase.from('speakers').select('id,name,institution,photo_url').eq('is_published',true).order('sort_order'),supabase.from('program_items').select('id,event_date,start_time,title,description').eq('is_published',true).order('event_date').order('sort_order'),supabase.from('scientific_committee').select('*').order('sort_order')]); return { speakers:(speakers.data||[]).map(x=>({...x,role:'',photo:x.photo_url||''})), program:(program.data||[]).map(x=>({...x,day:Math.max(0,Math.round((new Date(x.event_date+'T00:00:00').getTime()-new Date('2026-11-02T00:00:00').getTime())/86400000)),time:x.start_time?.slice(0,5)||'',detail:x.description||''})), committee:committee.data||[]} }
 
 function BrandMark({ dark=false }: { dark?: boolean }) { return <div className={'brand-mark '+(dark?'dark':'')} aria-label="CIM26"><img src={logoMarkUrl} alt="CIM26"/></div> }
 function Button({ children, outline=false, href='#', external=false }: { children: React.ReactNode; outline?: boolean; href?: string; external?: boolean }) { return <a className={'button '+(outline?'button-outline':'')} href={href} target={external?'_blank':undefined} rel={external?'noreferrer':undefined}>{children}<ArrowUpRight size={17}/></a> }
