@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { ArrowUpRight, BookOpen, CalendarDays, ChevronDown, Globe2, Mail, Menu, Network, Scale, Sparkles, X, Settings, Plus, Trash2, Save, Users, ListChecks, Landmark, Search, Check, ChevronUp } from 'lucide-react'
 import './styles.css'
 import './overrides.css'
+import AdminDashboard from './AdminDashboard'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
@@ -40,10 +41,14 @@ function CommitteeManagerUX({ onExit, onBack }: { onExit:()=>void; onBack:()=>vo
 
 function AdminPassword({ onSuccess, onExit }: { onSuccess:()=>void; onExit:()=>void }) { const [password,setPassword]=useState(''); const [error,setError]=useState(''); const submit=(e:React.FormEvent)=>{e.preventDefault();if(password==='cim26admin'){onSuccess()}else setError('Contraseña incorrecta.');}; return <div className="admin-shell admin-gate"><form className="admin-gate-form" onSubmit={submit}><BrandMark dark/><div className="eyebrow dark-eyebrow"><span/> ACCESO ADMINISTRACIÓN</div><h1>Ingresá la <em>contraseña.</em></h1><label>Contraseña<input autoFocus type="password" value={password} onChange={e=>{setPassword(e.target.value);setError('')}}/></label>{error&&<p className="admin-error">{error}</p>}<button className="admin-save" type="submit">Entrar</button><button className="admin-gate-exit" type="button" onClick={onExit}>Volver al sitio</button></form></div> }
 
-function Admin({ onExit }: { onExit:()=>void }) {
+function Admin({ onExit }: { onExit:()=>void }) { return <AdminDashboard onExit={onExit}/>
+}
+
+// Kept temporarily for the legacy content editor while the organizer dashboard owns the admin route.
+function LegacyAdmin({ onExit }: { onExit:()=>void }) {
   const [content,setContent] = useState<Content>(initialContent); const [tab,setTab] = useState<'speakers'|'program'|'committee'>('speakers'); const [saved,setSaved] = useState(false); const [saving,setSaving] = useState(false); const [error,setError] = useState('')
   useState(() => { loadContent().then(setContent).catch(e=>setError(e.message)) })
-  if (tab === 'committee') return <CommitteeManagerUX onExit={onExit} onBack={()=>setTab('speakers')}/>
+  if (tab === 'speakers' || tab === 'committee') return <AdminDashboard onExit={onExit}/>
   const save = async () => { setError(''); setSaving(true); try { if(tab==='speakers' && content.speakers.some(x=>!x.name.trim()||!x.institution.trim())) throw new Error('Completá el nombre y la institución de cada ponente.'); const rows = tab==='speakers' ? content.speakers.map(x=>({id:x.id.length>20?x.id:undefined,name:x.name.trim(),institution:x.institution.trim(),photo_url:x.photo.trim()||null,is_published:true})) : tab==='program' ? content.program.map(x=>({id:x.id.length>20?x.id:undefined,event_date:x.date||`2026-11-${String(2+x.day).padStart(2,'0')}`,start_time:x.time||null,title:x.title,description:x.detail||null,is_published:true})) : content.committee.map(x=>({id:x.id.length>20?x.id:undefined,name:x.name,role:x.role||null,institution:x.institution||null,is_published:true})); const table=tab==='speakers'?'speakers':tab==='program'?'program_items':'scientific_committee'; const results=await Promise.all(rows.map(row=>supabase.from(table).upsert(row))); const failure=results.find(x=>x.error); if(failure?.error) throw new Error(failure.error.message); setContent(await loadContent()); setSaved(true); setTimeout(()=>setSaved(false),1800) } catch(e) { setError(e instanceof Error?e.message:'No se pudieron guardar los cambios.') } finally { setSaving(false) } }
   const update = (type:keyof Content,id:number,key:string,value:string|number) => setContent(c=>({...c,[type]:c[type].map((x:any)=>x.id===id?{...x,[key]:value}:x)} as Content))
   const remove = async (type:keyof Content,id:string) => { setContent(c=>({...c,[type]:c[type].filter((x:any)=>x.id!==id)} as Content)); if(id.length>20){const table=type==='speakers'?'speakers':type==='program'?'program_items':'scientific_committee'; const {error:e}=await supabase.from(table).delete().eq('id',id); if(e)setError(e.message)} }
