@@ -112,10 +112,10 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
       sort_order: Number(editing.sort_order) || items.length + 1,
       is_published: editing.is_published ?? true,
     }
-    // The two tables are intentionally not identical: speakers have no role
-    // or specialty columns, while scientific_committee has both.
+    // Speakers need the optional role column added by the Supabase migration;
+    // committee members support both role and specialty natively.
     const data = kind === 'speakers'
-      ? commonData
+      ? { ...commonData, role: editing.role?.trim() || null }
       : { ...commonData, role: editing.role?.trim() || null, specialty: editing.specialty?.trim() || null }
     const result = id.startsWith('new-')
       ? await db.from(table).insert(data)
