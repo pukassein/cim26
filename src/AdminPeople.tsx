@@ -5,6 +5,7 @@ import './people.css'
 
 const url = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'missing-publishable-key'
+const supabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)
 const db = createClient(url, key)
 
 export type PersonKind = 'speakers' | 'committee'
@@ -65,9 +66,18 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
   const load = async () => {
     setLoading(true)
-    const result = await db.from(table).select('*').order('sort_order').order('name')
-    if (result.error) setError(result.error.message)
-    else setItems((result.data || []) as Person[])
+    if (!supabaseConfigured) {
+      setError('Supabase no está configurado en el despliegue. Agregá VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY en las variables de entorno y volvé a desplegar.')
+      setLoading(false)
+      return
+    }
+    try {
+      const result = await db.from(table).select('*').order('sort_order').order('name')
+      if (result.error) setError(result.error.message)
+      else setItems((result.data || []) as Person[])
+    } catch (caught) {
+      setError(`No se pudo conectar con Supabase: ${caught instanceof Error ? caught.message : 'Failed to fetch'}`)
+    }
     setLoading(false)
   }
 
@@ -117,9 +127,16 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     const data = kind === 'speakers'
       ? { ...commonData, role: editing.role?.trim() || null }
       : { ...commonData, role: editing.role?.trim() || null, specialty: editing.specialty?.trim() || null }
-    const result = id.startsWith('new-')
-      ? await db.from(table).insert(data)
-      : await db.from(table).update(data).eq('id', id)
+    let result: { error: { message: string } | null }
+    try {
+      result = id.startsWith('new-')
+        ? await db.from(table).insert(data)
+        : await db.from(table).update(data).eq('id', id)
+    } catch (caught) {
+      setError(`No se pudo conectar con Supabase: ${caught instanceof Error ? caught.message : 'Failed to fetch'}`)
+      setBusy(false)
+      return
+    }
 
     if (result.error) {
       setError(`No se pudo guardar el registro: ${result.error.message}`)
@@ -138,9 +155,17 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     if (!confirming) return
     setBusy(true)
     setError('')
-    const result = confirming.id.startsWith('new-')
-      ? { error: null }
-      : await db.from(table).delete().eq('id', confirming.id)
+    let result: { error: { message: string } | null }
+    try {
+      result = confirming.id.startsWith('new-')
+        ? { error: null }
+        : await db.from(table).delete().eq('id', confirming.id)
+    } catch (caught) {
+      setError(`No se pudo conectar con Supabase: ${caught instanceof Error ? caught.message : 'Failed to fetch'}`)
+      setConfirming(null)
+      setBusy(false)
+      return
+    }
 
     if (result.error) {
       setError(`No se pudo eliminar el registro: ${result.error.message}`)
