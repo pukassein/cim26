@@ -16,6 +16,28 @@
   position: relative;
 }
 
+.register-heading { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: end; margin-bottom: 48px; }
+.register-heading > p { max-width: 410px; margin: 0 0 4px; font: 20px/1.4 'Space Grotesk'; }
+.register-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.register-option { display: flex; flex-direction: column; justify-content: space-between; min-height: 360px; padding: 30px; background: #fff; border: 1px solid #ddd; border-top: 4px solid #702275; }
+.register-option-work { border-top-color: #09A9DE; }
+.register-option-attendee { background: #842b87; border-color: #842b87; color: #fff; box-shadow: 0 14px 30px #842b8735; }
+.register-option-attendee .register-option-number { color: #ffd225; }
+.register-option-attendee p, .register-option-attendee .register-details small { color: #f8eafa !important; }
+.register-option-attendee .register-details { border-top-color: #ffffff55; }
+.register-option-attendee h3 small { display: block; margin-top: 9px; color: #ffd225; font: 600 15px/1.2 'DM Sans'; letter-spacing: 0; }
+.register-option-attendee .button { background: #ffd225; color: #080808; }
+.register-option-attendee .button:hover { background: #fff; }
+.register-option-number { color: #702275; font: 600 13px 'Space Grotesk'; letter-spacing: 1px; }
+.register-option-work .register-option-number { color: #138EC2; }
+.register-option h3 { max-width: 360px; margin: 22px 0 12px; font: 600 30px/1.05 'Space Grotesk'; letter-spacing: -1px; }
+.register-option p { max-width: 410px; margin: 0; font: 17px/1.45 'Space Grotesk'; color: #555; }
+.register-details { display: flex; flex-direction: column; gap: 5px; margin-top: 23px; padding-top: 17px; border-top: 1px solid #ddd; font-size: 14px; }
+.register-details strong { margin-bottom: 3px; font: 700 11px 'DM Sans'; letter-spacing: 1.3px; text-transform: uppercase; }
+.register-details small { margin-top: 9px; color: #777; font-size: 12px; line-height: 1.4; }
+.register-option .button { align-self: flex-start; margin-top: 30px; }
+
+
 .publication-note {
   display: flex;
   align-items: center;
@@ -87,6 +109,11 @@
 }
 
 @media (max-width: 800px) {
+  .register-heading, .register-options { grid-template-columns: 1fr; }
+  .register-heading { gap: 25px; margin-bottom: 30px; }
+  .register-heading > p { font-size: 18px; }
+  .register-option { min-height: 0; padding: 24px; }
+  .register-option h3 { font-size: 27px; }
   .theme-topics ul { columns: 1; }
 }
 
