@@ -38,6 +38,26 @@
 .register-option .button { align-self: flex-start; margin-top: 30px; }
 
 
+.departmental-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 28px;
+  padding: 15px 18px;
+  border-left: 4px solid #842b87;
+  background: #f8eef9;
+  color: #842b87;
+}
+.departmental-note strong {
+  font: 700 11px 'DM Sans';
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.departmental-note span {
+  color: #5f4762;
+  font-size: 13px;
+}
+
 .publication-note {
   display: flex;
   align-items: center;
