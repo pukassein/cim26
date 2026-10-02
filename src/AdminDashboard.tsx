@@ -101,19 +101,21 @@ function ProgramManagement() {
 
 export default function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [tab, setTab] = useState<Tab>('speakers')
-  const [counts, setCounts] = useState({ speakers: 0, committee: 0, program: 0 })
+  const [counts, setCounts] = useState({ speakers: 0, committee: 0, organizing: 0, program: 0 })
 
   useEffect(() => {
     Promise.all([
       db.from('speakers').select('*', { count: 'exact', head: true }),
       db.from('scientific_committee').select('*', { count: 'exact', head: true }),
+      db.from('organizing_committee').select('*', { count: 'exact', head: true }),
       db.from('program_items').select('*', { count: 'exact', head: true }),
-    ]).then(([speakers, committee, program]) => setCounts({ speakers: speakers.count || 0, committee: committee.count || 0, program: program.count || 0 }))
+    ]).then(([speakers, committee, organizing, program]) => setCounts({ speakers: speakers.count || 0, committee: committee.count || 0, organizing: organizing.count || 0, program: program.count || 0 }))
   }, [tab])
 
   const tabs: { key: Tab; label: string; icon: typeof Users }[] = [
     { key: 'speakers', label: 'Ponentes', icon: Users },
     { key: 'committee', label: 'Comité Científico', icon: Landmark },
+    { key: 'organizing', label: 'Comité de Organización', icon: Users },
     { key: 'program', label: 'Programa', icon: ListChecks },
   ]
 

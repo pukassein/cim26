@@ -8,7 +8,7 @@ const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'missing-publishabl
 const supabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)
 const db = createClient(url, key)
 
-export type PersonKind = 'speakers' | 'committee'
+export type PersonKind = 'speakers' | 'committee' | 'organizing'
 export type Person = {
   id: string
   name: string
@@ -60,9 +60,9 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  const table = kind === 'speakers' ? 'speakers' : 'scientific_committee'
+  const table = kind === 'speakers' ? 'speakers' : kind === 'committee' ? 'scientific_committee' : 'organizing_committee'
   const singular = kind === 'speakers' ? 'Ponente' : 'Integrante'
-  const title = kind === 'speakers' ? 'Gestionar Ponentes' : 'Gestionar Comité Científico'
+  const title = kind === 'speakers' ? 'Gestionar Ponentes' : kind === 'committee' ? 'Gestionar Comité Científico' : 'Gestionar Comité de Organización'
 
   const load = async () => {
     setLoading(true)
@@ -126,7 +126,9 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     // committee members support both role and specialty natively.
     const data = kind === 'speakers'
       ? { ...commonData, role: editing.role?.trim() || null }
-      : { ...commonData, role: editing.role?.trim() || null, specialty: editing.specialty?.trim() || null }
+      : kind === 'committee'
+        ? { ...commonData, role: editing.role?.trim() || null, specialty: editing.specialty?.trim() || null }
+        : { name: commonData.name, institution: commonData.institution, sort_order: commonData.sort_order, is_published: commonData.is_published }
     let result: { error: { message: string } | null }
     try {
       result = id.startsWith('new-')
@@ -189,7 +191,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `${kind === 'speakers' ? 'ponentes' : 'comite-cientifico'}.csv`
+    link.download = `${kind === 'speakers' ? 'ponentes' : kind === 'committee' ? 'comite-cientifico' : 'comite-organizacion'}.csv`
     link.click()
     URL.revokeObjectURL(link.href)
   }
@@ -245,10 +247,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         <div className="person-form-grid">
           <label>Nombre completo <span>*</span><input required value={fieldValue(editing, 'name')} onChange={event => updateDraft('name', event.target.value)} /></label>
           <label>Institución/Afiliación<input value={fieldValue(editing, 'institution')} onChange={event => updateDraft('institution', event.target.value)} /></label>
-          <label>Cargo, área o especialidad<input value={fieldValue(editing, 'role') || fieldValue(editing, 'specialty')} onChange={event => updateDraft('role', event.target.value)} /></label>
-          <label>URL de imagen<input type="url" value={fieldValue(editing, 'photo_url')} onChange={event => updateDraft('photo_url', event.target.value)} /></label>
-          <label className="wide-field">Biografía o descripción<textarea rows={5} value={fieldValue(editing, 'biography')} onChange={event => updateDraft('biography', event.target.value)} /></label>
-          <label>Orden de visualización<input type="number" min="1" value={fieldValue(editing, 'sort_order')} onChange={event => updateDraft('sort_order', Number(event.target.value))} /></label>
+                    <label>Orden de visualización<input type="number" min="1" value={fieldValue(editing, 'sort_order')} onChange={event => updateDraft('sort_order', Number(event.target.value))} /></label>
         </div>
         {error && <p className="admin-error modal-error" role="alert">{error}</p>}
         <div className="person-modal-actions">

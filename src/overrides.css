@@ -72,6 +72,13 @@
 
 .publication-note svg { color: #702275; flex: 0 0 auto; }
 .publication-note p { margin: 0; font: 16px/1.4 'Space Grotesk'; }
+.organization { background: #fff; }
+.organization .section-head { margin-bottom: 42px; }
+.organization-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.organization-member { padding: 24px; border: 1px solid #ddd; border-top: 3px solid #702275; background: #f8f8f6; }
+.organization-member h3 { margin: 0 0 8px; font: 600 20px/1.15 'Space Grotesk'; }
+.organization-member p { margin: 0; color: #777; font-size: 14px; line-height: 1.4; }
+.organization-empty { padding: 42px 20px; border: 1px dashed #ccc; color: #777; text-align: center; }
 .sponsors { background: #f8f8f6; }
 .sponsors .section-head { display: block; margin-bottom: 42px; }
 .sponsor-logo { display: flex; justify-content: center; align-items: center; min-height: 180px; padding: 30px; background: #fff; border: 1px solid #ddd; }
@@ -136,6 +143,7 @@
   .register-heading, .register-options { grid-template-columns: 1fr; }
   .register-heading { gap: 25px; margin-bottom: 30px; }
   .register-heading > p { font-size: 18px; }
+  .organization-grid { grid-template-columns: 1fr; }
   .sponsor-logo { min-height: 140px; padding: 24px; }
   .register-option { min-height: 0; padding: 24px; }
   .register-option h3 { font-size: 27px; }
