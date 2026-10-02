@@ -185,3 +185,16 @@
 @media (max-width: 800px) {
   .speaker-photo { width: 72px; height: 72px; flex-basis: 72px; }
 }
+/* Compact speaker grid */
+.speakers-layout { display: block; }
+.speakers-heading { margin-bottom: 48px; }
+.speakers-heading h2 { margin-top: 20px; }
+.speaker-message { border-left: 0; padding-left: 0; }
+.speaker-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 28px; }
+.speaker-card { min-width: 0; gap: 14px; padding: 4px 0; }
+.speaker-card h3 { font-size: 17px; line-height: 1.15; }
+.speaker-card p, .speaker-card small { font-size: 12px; line-height: 1.3; }
+.speaker-card .speaker-photo { width: 62px; height: 62px; flex: 0 0 62px; }
+.speaker-message > .accent-line { margin-top: 42px; }
+@media (max-width: 900px) { .speaker-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .speakers-heading { margin-bottom: 32px; } .speaker-cards { grid-template-columns: 1fr; gap: 18px; } }
