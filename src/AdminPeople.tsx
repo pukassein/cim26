@@ -247,7 +247,11 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         <div className="person-form-grid">
           <label>Nombre completo <span>*</span><input required value={fieldValue(editing, 'name')} onChange={event => updateDraft('name', event.target.value)} /></label>
           <label>Institución/Afiliación<input value={fieldValue(editing, 'institution')} onChange={event => updateDraft('institution', event.target.value)} /></label>
-                    <label>Orden de visualización<input type="number" min="1" value={fieldValue(editing, 'sort_order')} onChange={event => updateDraft('sort_order', Number(event.target.value))} /></label>
+          {kind === 'speakers' && <>
+            <label>Cargo / especialidad<input value={fieldValue(editing, 'role')} onChange={event => updateDraft('role', event.target.value)} /></label>
+            <label>URL de foto<input type="url" placeholder="https://…" value={fieldValue(editing, 'photo_url')} onChange={event => updateDraft('photo_url', event.target.value)} /></label>
+          </>}
+          <label>Orden de visualización<input type="number" min="1" value={fieldValue(editing, 'sort_order')} onChange={event => updateDraft('sort_order', Number(event.target.value))} /></label>
         </div>
         {error && <p className="admin-error modal-error" role="alert">{error}</p>}
         <div className="person-modal-actions">
