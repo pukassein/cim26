@@ -81,8 +81,10 @@
 .organization-empty { padding: 42px 20px; border: 1px dashed #ccc; color: #777; text-align: center; }
 .sponsors { background: #f8f8f6; }
 .sponsors .section-head { display: block; margin-bottom: 42px; }
+.sponsor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .sponsor-logo { display: flex; justify-content: center; align-items: center; min-height: 180px; padding: 30px; background: #fff; border: 1px solid #ddd; }
 .sponsor-logo img { display: block; width: min(100%, 430px); max-height: 150px; object-fit: contain; }
+.sponsor-logo-papyrus img { width: auto; max-width: 100%; }
 
 
 .theme-expand {
@@ -144,6 +146,7 @@
   .register-heading { gap: 25px; margin-bottom: 30px; }
   .register-heading > p { font-size: 18px; }
   .organization-grid { grid-template-columns: 1fr; }
+  .sponsor-grid { grid-template-columns: 1fr; }
   .sponsor-logo { min-height: 140px; padding: 24px; }
   .register-option { min-height: 0; padding: 24px; }
   .register-option h3 { font-size: 27px; }
