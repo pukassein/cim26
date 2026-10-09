@@ -19,5 +19,24 @@ create policy public_read_published_organizing_committee
   on public.organizing_committee for select
   using (is_published = true);
 
--- Add an authenticated-admin write policy after enabling Supabase Auth for admins.
--- The current client-side admin password does not authenticate a Supabase user.
+-- The current panel uses the publishable (anonymous) Supabase key. These policies
+-- mirror that architecture so its create, edit, delete and move actions work.
+-- Replace them with authenticated-admin policies when Supabase Auth is enabled.
+drop policy if exists panel_insert_organizing_committee on public.organizing_committee;
+create policy panel_insert_organizing_committee
+  on public.organizing_committee for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists panel_update_organizing_committee on public.organizing_committee;
+create policy panel_update_organizing_committee
+  on public.organizing_committee for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists panel_delete_organizing_committee on public.organizing_committee;
+create policy panel_delete_organizing_committee
+  on public.organizing_committee for delete
+  to anon, authenticated
+  using (true);

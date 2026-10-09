@@ -286,7 +286,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
     {loading ? <div className="people-empty">Cargando registros…</div> : visible.length ? <div className="people-grid">
       {visible.map(person => <article className="person-card" key={person.id}>
-        {kind === 'speakers' && <label className="person-select" title={`Seleccionar a ${person.name}`}><input type="checkbox" checked={selected.has(person.id)} onChange={() => toggleSelected(person.id)} /><span className="sr-only">Seleccionar a {person.name}</span></label>}
+        {kind === 'speakers' && <label className="person-select" title={`Seleccionar a ${person.name}`}><input type="checkbox" aria-label={`Seleccionar a ${person.name}`} checked={selected.has(person.id)} onChange={() => toggleSelected(person.id)} /></label>}
         <PersonAvatar person={person} />
         <div className="person-info">
           <h3 title={person.name}>{person.name || 'Sin nombre'}</h3>
