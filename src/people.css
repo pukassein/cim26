@@ -35,3 +35,9 @@
 .person-modal { max-height: calc(100vh - 40px); overflow-y: auto; }
 
 .move-confirm-icon { background: #e5f4f2; color: #087f78; }
+
+.people-panel .people-toolbar .select-all-action,.people-panel .people-toolbar .bulk-move-action { flex: 0 0 auto; white-space: nowrap; }
+.people-panel .people-toolbar button:disabled { cursor: not-allowed; opacity: .5; }
+.person-select { display: grid; flex: 0 0 auto; place-items: center; }
+.person-select input { width: 17px; height: 17px; margin: 0; accent-color: #087f78; cursor: pointer; }
+@media (max-width: 800px) { .people-panel .people-toolbar .select-all-action,.people-panel .people-toolbar .bulk-move-action { width: 100%; justify-content: center; } }

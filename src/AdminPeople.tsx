@@ -21,6 +21,12 @@ export type Person = {
   is_published?: boolean
 }
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && error !== null && 'message' in error) return String(error.message)
+  return String(error || 'Error desconocido')
+}
+
 const emptyPerson = (order: number): Person => ({
   id: `new-${Date.now()}`,
   name: '',
@@ -54,7 +60,8 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
   const [items, setItems] = useState<Person[]>([])
   const [editing, setEditing] = useState<Person | null>(null)
   const [confirming, setConfirming] = useState<Person | null>(null)
-  const [moving, setMoving] = useState<Person | null>(null)
+  const [moving, setMoving] = useState<Person[]>([])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -185,7 +192,8 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
   }
 
   const moveToOrganizingCommittee = async () => {
-    if (!moving || moving.id.startsWith('new-')) return
+    const people = moving.filter(person => !person.id.startsWith('new-'))
+    if (!people.length) return
     setBusy(true)
     setError('')
 
@@ -198,30 +206,46 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         .maybeSingle()
       if (orderResult.error) throw orderResult.error
 
-      const insertResult = await db.from('organizing_committee').insert({
-        name: moving.name.trim(),
-        institution: moving.institution?.trim() || '',
-        sort_order: Number(orderResult.data?.sort_order || 0) + 1,
-        is_published: moving.is_published ?? true,
-      }).select('id').single()
+      const firstOrder = Number(orderResult.data?.sort_order || 0) + 1
+      const insertResult = await db.from('organizing_committee').insert(people.map((person, index) => ({
+        name: person.name.trim(),
+        institution: person.institution?.trim() || '',
+        sort_order: firstOrder + index,
+        is_published: person.is_published ?? true,
+      })))
       if (insertResult.error) throw insertResult.error
 
-      const deleteResult = await db.from('speakers').delete().eq('id', moving.id)
-      if (deleteResult.error) {
-        await db.from('organizing_committee').delete().eq('id', insertResult.data.id)
-        throw deleteResult.error
-      }
+      const deleteResult = await db.from('speakers').delete().in('id', people.map(person => person.id))
+      if (deleteResult.error) throw deleteResult.error
 
-      setMoving(null)
-      setMessage(`${moving.name} fue movido al Comité de Organización.`)
+      setMoving([])
+      setSelected(new Set())
+      setMessage(people.length === 1
+        ? `${people[0].name} fue movido al Comité de Organización.`
+        : `${people.length} personas fueron movidas al Comité de Organización.`)
       await load()
       window.setTimeout(() => setMessage(''), 2800)
     } catch (caught) {
-      setError(`No se pudo mover el registro: ${caught instanceof Error ? caught.message : 'Error desconocido'}`)
+      setError(`No se pudo mover ${people.length === 1 ? 'el registro' : 'los registros'}: ${errorMessage(caught)}`)
     } finally {
       setBusy(false)
     }
   }
+
+  const selectedPeople = items.filter(person => selected.has(person.id))
+  const toggleSelected = (id: string) => setSelected(current => {
+    const next = new Set(current)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return next
+  })
+
+  const toggleAllVisible = () => setSelected(current => {
+    const next = new Set(current)
+    const allSelected = visible.length > 0 && visible.every(person => next.has(person.id))
+    visible.forEach(person => allSelected ? next.delete(person.id) : next.add(person.id))
+    return next
+  })
 
   const downloadExcel = () => {
     const headers = ['Nombre completo', 'Institución/Afiliación', 'Cargo, área o especialidad', 'URL de imagen', 'Biografía o descripción', 'Orden de visualización']
@@ -251,6 +275,10 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
     <div className="people-toolbar">
       <input aria-label="Buscar personas" placeholder="Buscar por nombre o institución" value={query} onChange={event => setQuery(event.target.value)} />
+      {kind === 'speakers' && <>
+        <button className="admin-outline select-all-action" onClick={toggleAllVisible} disabled={!visible.length}>{visible.length > 0 && visible.every(person => selected.has(person.id)) ? 'Quitar selección' : 'Seleccionar visibles'}</button>
+        <button className="admin-primary bulk-move-action" onClick={() => setMoving(selectedPeople)} disabled={!selectedPeople.length}><ArrowRight size={16} /> Mover seleccionados{selectedPeople.length ? ` (${selectedPeople.length})` : ''}</button>
+      </>}
     </div>
 
     {error && <p className="admin-error" role="alert">{error}</p>}
@@ -258,6 +286,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
     {loading ? <div className="people-empty">Cargando registros…</div> : visible.length ? <div className="people-grid">
       {visible.map(person => <article className="person-card" key={person.id}>
+        {kind === 'speakers' && <label className="person-select" title={`Seleccionar a ${person.name}`}><input type="checkbox" checked={selected.has(person.id)} onChange={() => toggleSelected(person.id)} /><span className="sr-only">Seleccionar a {person.name}</span></label>}
         <PersonAvatar person={person} />
         <div className="person-info">
           <h3 title={person.name}>{person.name || 'Sin nombre'}</h3>
@@ -266,7 +295,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         </div>
         <div className="person-actions">
           <button className="edit-action" onClick={() => openEdit(person)}><Pencil size={14} /> Editar</button>
-          {kind === 'speakers' && <button className="move-action" onClick={() => setMoving(person)}><ArrowRight size={14} /> Mover a Organización</button>}
+          {kind === 'speakers' && <button className="move-action" onClick={() => setMoving([person])}><ArrowRight size={14} /> Mover a Organización</button>}
           <button className="delete-action" onClick={() => setConfirming(person)}><Trash2 size={14} /> Excluir</button>
         </div>
       </article>)}
@@ -311,12 +340,12 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
       </div>
     </div>}
 
-    {moving && <div className="confirm-backdrop" role="presentation">
+    {moving.length > 0 && <div className="confirm-backdrop" role="presentation">
       <div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="move-confirm-title">
         <div className="confirm-icon move-confirm-icon"><ArrowRight size={19} /></div>
-        <h2 id="move-confirm-title">¿Mover al Comité de Organización?</h2>
-        <p><strong>{moving.name || 'Esta persona'}</strong> dejará de aparecer en Ponentes y pasará al Comité de Organización.</p>
-        <div className="confirm-actions"><button className="admin-quiet" onClick={() => setMoving(null)} disabled={busy}>Cancelar</button><button className="admin-primary" onClick={() => void moveToOrganizingCommittee()} disabled={busy}>{busy ? 'Moviendo…' : 'Mover persona'}</button></div>
+        <h2 id="move-confirm-title">¿Mover {moving.length === 1 ? 'esta persona' : `estas ${moving.length} personas`} al Comité de Organización?</h2>
+        <p>{moving.length === 1 ? <><strong>{moving[0].name || 'Esta persona'}</strong> dejará de aparecer en Ponentes.</> : <>Las personas seleccionadas dejarán de aparecer en Ponentes y pasarán al Comité de Organización.</>}</p>
+        <div className="confirm-actions"><button className="admin-quiet" onClick={() => setMoving([])} disabled={busy}>Cancelar</button><button className="admin-primary" onClick={() => void moveToOrganizingCommittee()} disabled={busy}>{busy ? 'Moviendo…' : `Mover ${moving.length === 1 ? 'persona' : 'personas'}`}</button></div>
       </div>
     </div>}
   </section>
