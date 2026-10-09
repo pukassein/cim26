@@ -40,4 +40,7 @@
 .people-panel .people-toolbar button:disabled { cursor: not-allowed; opacity: .5; }
 .person-select { display: grid; flex: 0 0 auto; place-items: center; }
 .person-select input { width: 17px; height: 17px; margin: 0; accent-color: #087f78; cursor: pointer; }
+.people-panel-actions .management-toggle { display: grid; width: 40px; height: 40px; flex: 0 0 40px; place-items: center; border: 1px solid #d5dfde; border-radius: 7px; background: #fff; color: #718080; cursor: pointer; }
+.people-panel-actions .management-toggle:hover { border-color: #87aaa7; color: #087f78; background: #f1f8f7; }
+.people-panel-actions .management-toggle.active { border-color: #087f78; color: #fff; background: #087f78; }
 @media (max-width: 800px) { .people-panel .people-toolbar .select-all-action,.people-panel .people-toolbar .bulk-move-action { width: 100%; justify-content: center; } }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, Check, Download, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
+import { ArrowRight, Check, Download, Pencil, Plus, Save, Settings, Trash2, X } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import './people.css'
 
@@ -62,6 +62,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
   const [confirming, setConfirming] = useState<Person | null>(null)
   const [moving, setMoving] = useState<Person[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [moveMode, setMoveMode] = useState(false)
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -220,6 +221,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
       setMoving([])
       setSelected(new Set())
+      setMoveMode(false)
       setMessage(people.length === 1
         ? `${people[0].name} fue movido al Comité de Organización.`
         : `${people.length} personas fueron movidas al Comité de Organización.`)
@@ -247,6 +249,13 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     return next
   })
 
+  const toggleMoveMode = () => {
+    setMoveMode(current => {
+      if (current) setSelected(new Set())
+      return !current
+    })
+  }
+
   const downloadExcel = () => {
     const headers = ['Nombre completo', 'Institución/Afiliación', 'Cargo, área o especialidad', 'URL de imagen', 'Biografía o descripción', 'Orden de visualización']
     const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
@@ -268,6 +277,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         <p>{items.length} {items.length === 1 ? 'registro' : 'registros'} disponibles</p>
       </div>
       <div className="people-panel-actions">
+        {kind === 'speakers' && <button className={`management-toggle${moveMode ? ' active' : ''}`} onClick={toggleMoveMode} aria-label={moveMode ? 'Cerrar modo de selección' : 'Administrar movimiento de ponentes'} aria-pressed={moveMode} title="Mover ponentes al Comité de Organización"><Settings size={18} /></button>}
         <button className="admin-outline" onClick={downloadExcel}><Download size={16} /> Descargar Excel</button>
         <button className="admin-primary" onClick={openNew}><Plus size={17} /> Nuevo {singular}</button>
       </div>
@@ -275,7 +285,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
     <div className="people-toolbar">
       <input aria-label="Buscar personas" placeholder="Buscar por nombre o institución" value={query} onChange={event => setQuery(event.target.value)} />
-      {kind === 'speakers' && <>
+      {kind === 'speakers' && moveMode && <>
         <button className="admin-outline select-all-action" onClick={toggleAllVisible} disabled={!visible.length}>{visible.length > 0 && visible.every(person => selected.has(person.id)) ? 'Quitar selección' : 'Seleccionar visibles'}</button>
         <button className="admin-primary bulk-move-action" onClick={() => setMoving(selectedPeople)} disabled={!selectedPeople.length}><ArrowRight size={16} /> Mover seleccionados{selectedPeople.length ? ` (${selectedPeople.length})` : ''}</button>
       </>}
@@ -286,7 +296,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
     {loading ? <div className="people-empty">Cargando registros…</div> : visible.length ? <div className="people-grid">
       {visible.map(person => <article className="person-card" key={person.id}>
-        {kind === 'speakers' && <label className="person-select" title={`Seleccionar a ${person.name}`}><input type="checkbox" aria-label={`Seleccionar a ${person.name}`} checked={selected.has(person.id)} onChange={() => toggleSelected(person.id)} /></label>}
+        {kind === 'speakers' && moveMode && <label className="person-select" title={`Seleccionar a ${person.name}`}><input type="checkbox" aria-label={`Seleccionar a ${person.name}`} checked={selected.has(person.id)} onChange={() => toggleSelected(person.id)} /></label>}
         <PersonAvatar person={person} />
         <div className="person-info">
           <h3 title={person.name}>{person.name || 'Sin nombre'}</h3>
@@ -295,7 +305,6 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         </div>
         <div className="person-actions">
           <button className="edit-action" onClick={() => openEdit(person)}><Pencil size={14} /> Editar</button>
-          {kind === 'speakers' && <button className="move-action" onClick={() => setMoving([person])}><ArrowRight size={14} /> Mover a Organización</button>}
           <button className="delete-action" onClick={() => setConfirming(person)}><Trash2 size={14} /> Excluir</button>
         </div>
       </article>)}
