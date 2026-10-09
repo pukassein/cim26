@@ -73,11 +73,11 @@
 .publication-note svg { color: #702275; flex: 0 0 auto; }
 .publication-note p { margin: 0; font: 16px/1.4 'Space Grotesk'; }
 .organization { background: #fff; }
-.organization .section-head { margin-bottom: 42px; }
-.organization-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.organization-member { padding: 24px; border: 1px solid #ddd; border-top: 3px solid #702275; background: #f8f8f6; }
-.organization-member h3 { margin: 0 0 8px; font: 600 20px/1.15 'Space Grotesk'; }
-.organization-member p { margin: 0; color: #777; font-size: 14px; line-height: 1.4; }
+.organization .section-head { margin-bottom: 30px; }
+.organization-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 9px; }
+.organization-member { padding: 14px 16px; border: 1px solid #ddd; border-top: 2px solid #702275; background: #f8f8f6; }
+.organization-member h3 { margin: 0 0 5px; font: 600 16px/1.18 'Space Grotesk'; }
+.organization-member p { margin: 0; color: #777; font-size: 12px; line-height: 1.3; }
 .organization-empty { padding: 42px 20px; border: 1px dashed #ccc; color: #777; text-align: center; }
 .sponsors { background: #f8f8f6; }
 .sponsors .section-head { display: block; margin-bottom: 42px; }
@@ -145,12 +145,16 @@
   .register-heading, .register-options { grid-template-columns: 1fr; }
   .register-heading { gap: 25px; margin-bottom: 30px; }
   .register-heading > p { font-size: 18px; }
-  .organization-grid { grid-template-columns: 1fr; }
+  .organization-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sponsor-grid { grid-template-columns: 1fr; }
   .sponsor-logo { min-height: 140px; padding: 24px; }
   .register-option { min-height: 0; padding: 24px; }
   .register-option h3 { font-size: 27px; }
   .theme-topics ul { columns: 1; }
+}
+
+@media (max-width: 480px) {
+  .organization-grid { grid-template-columns: 1fr; }
 }
 
 .committee-toolbar{display:flex;gap:12px;margin:28px 0 20px}.committee-toolbar label{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #ddd;padding:0 12px;flex:1}.committee-toolbar input{border:0;padding:13px 4px;width:100%;outline:0}.committee-toolbar select{border:1px solid #ddd;background:#fff;padding:13px;min-width:150px}.committee-cards{display:grid;gap:12px}.committee-card{background:#fff;border:1px solid #ddd}.committee-summary{display:flex;align-items:center;gap:16px;padding:20px}.committee-summary img{width:52px;height:52px;border-radius:50%;object-fit:cover}.committee-summary-copy{flex:1;min-width:0}.committee-summary-copy h2{font-size:21px;letter-spacing:-.5px;margin:0 0 5px}.committee-summary-copy p,.committee-summary-copy small{display:block;margin:0;color:#666}.committee-summary-copy small{font-size:12px;margin-top:5px}.committee-actions{display:flex;gap:8px}.committee-actions button,.collapse-button,.editor-actions button{border:0;background:none;cursor:pointer;padding:9px;font-weight:700;font-size:12px}.danger-text{color:#b22;display:flex;gap:5px;align-items:center}.collapse-button{color:#702275}.committee-editor{border-top:1px solid #eee;padding:22px}.committee-form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.committee-form-grid label{display:flex;flex-direction:column;gap:7px;font-size:10px;letter-spacing:.8px;font-weight:700;text-transform:uppercase;color:#777}.committee-form-grid input,.committee-form-grid select,.committee-form-grid textarea{width:100%;border:1px solid #d5d5d5;background:#fff;padding:11px;font:14px 'DM Sans';color:#080808;text-transform:none;letter-spacing:0}.committee-form-grid textarea{min-height:85px;resize:vertical}.committee-form-grid .wide-field{grid-column:1/-1}.editor-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:20px}.editor-actions span{margin-right:auto;color:#b36b00;font-size:12px}.modal-backdrop{position:fixed;inset:0;background:#0008;display:grid;place-items:center;padding:20px;z-index:30}.confirm-modal{background:#fff;padding:28px;max-width:430px;box-shadow:0 20px 50px #0004}.confirm-modal h2{font-size:25px;letter-spacing:-1px;margin:0 0 25px}.confirm-modal>div{display:flex;justify-content:flex-end;gap:10px}.confirm-modal button{border:1px solid #111;background:#fff;padding:11px 16px;font-weight:700;cursor:pointer}.confirm-modal .danger-button{background:#b22;color:#fff;border-color:#b22}.toast{position:fixed;right:24px;bottom:24px;background:#080808;color:#fff;padding:14px 18px;display:flex;gap:9px;align-items:center;z-index:40;font-size:13px}.admin-save:disabled,.danger-button:disabled{opacity:.5;cursor:wait}
