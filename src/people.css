@@ -10,7 +10,7 @@
 .people-panel .person-info small { margin-top: 3px; color: #849292; }
 .people-panel .person-actions { flex: 0 0 auto; gap: 6px; }
 .people-panel .person-actions button { border: 0; background: transparent; padding: 4px 0; font: 700 11px 'DM Sans',sans-serif; }
-.people-panel .person-actions .edit-action { color: #2563b9; }.people-panel .person-actions .delete-action { color: #c33c42; }
+.people-panel .person-actions .edit-action { color: #2563b9; }.people-panel .person-actions .move-action { color: #087f78; }.people-panel .person-actions .delete-action { color: #c33c42; }
 .people-panel .person-actions button:hover { text-decoration: underline; }
 .person-modal-backdrop { background: #102525aa; animation: modal-fade .2s ease both; }
 .person-modal { width: min(100%, 680px); max-height: 90vh; box-sizing: border-box; border: 1px solid #e1e9e8; border-radius: 13px; padding: 28px; box-shadow: 0 24px 70px #001f1f40; animation: modal-rise .24s ease both; }
@@ -33,3 +33,5 @@
 
 /* Keep the dialog fully inside the viewport, including its padding. */
 .person-modal { max-height: calc(100vh - 40px); overflow-y: auto; }
+
+.move-confirm-icon { background: #e5f4f2; color: #087f78; }

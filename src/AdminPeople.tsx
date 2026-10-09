@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Download, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
+import { ArrowRight, Check, Download, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import './people.css'
 
@@ -54,6 +54,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
   const [items, setItems] = useState<Person[]>([])
   const [editing, setEditing] = useState<Person | null>(null)
   const [confirming, setConfirming] = useState<Person | null>(null)
+  const [moving, setMoving] = useState<Person | null>(null)
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -183,6 +184,45 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     window.setTimeout(() => setMessage(''), 2800)
   }
 
+  const moveToOrganizingCommittee = async () => {
+    if (!moving || moving.id.startsWith('new-')) return
+    setBusy(true)
+    setError('')
+
+    try {
+      const orderResult = await db
+        .from('organizing_committee')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (orderResult.error) throw orderResult.error
+
+      const insertResult = await db.from('organizing_committee').insert({
+        name: moving.name.trim(),
+        institution: moving.institution?.trim() || '',
+        sort_order: Number(orderResult.data?.sort_order || 0) + 1,
+        is_published: moving.is_published ?? true,
+      }).select('id').single()
+      if (insertResult.error) throw insertResult.error
+
+      const deleteResult = await db.from('speakers').delete().eq('id', moving.id)
+      if (deleteResult.error) {
+        await db.from('organizing_committee').delete().eq('id', insertResult.data.id)
+        throw deleteResult.error
+      }
+
+      setMoving(null)
+      setMessage(`${moving.name} fue movido al Comité de Organización.`)
+      await load()
+      window.setTimeout(() => setMessage(''), 2800)
+    } catch (caught) {
+      setError(`No se pudo mover el registro: ${caught instanceof Error ? caught.message : 'Error desconocido'}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const downloadExcel = () => {
     const headers = ['Nombre completo', 'Institución/Afiliación', 'Cargo, área o especialidad', 'URL de imagen', 'Biografía o descripción', 'Orden de visualización']
     const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
@@ -226,6 +266,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         </div>
         <div className="person-actions">
           <button className="edit-action" onClick={() => openEdit(person)}><Pencil size={14} /> Editar</button>
+          {kind === 'speakers' && <button className="move-action" onClick={() => setMoving(person)}><ArrowRight size={14} /> Mover a Organización</button>}
           <button className="delete-action" onClick={() => setConfirming(person)}><Trash2 size={14} /> Excluir</button>
         </div>
       </article>)}
@@ -267,6 +308,15 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         <h2 id="confirm-title">¿Está seguro de que desea eliminar este registro?</h2>
         <p>Se eliminará a <strong>{confirming.name || 'esta persona'}</strong> de la lista.</p>
         <div className="confirm-actions"><button className="admin-quiet" onClick={() => setConfirming(null)} disabled={busy}>Cancelar</button><button className="danger-button" onClick={() => void remove()} disabled={busy}>{busy ? 'Eliminando…' : 'Excluir'}</button></div>
+      </div>
+    </div>}
+
+    {moving && <div className="confirm-backdrop" role="presentation">
+      <div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="move-confirm-title">
+        <div className="confirm-icon move-confirm-icon"><ArrowRight size={19} /></div>
+        <h2 id="move-confirm-title">¿Mover al Comité de Organización?</h2>
+        <p><strong>{moving.name || 'Esta persona'}</strong> dejará de aparecer en Ponentes y pasará al Comité de Organización.</p>
+        <div className="confirm-actions"><button className="admin-quiet" onClick={() => setMoving(null)} disabled={busy}>Cancelar</button><button className="admin-primary" onClick={() => void moveToOrganizingCommittee()} disabled={busy}>{busy ? 'Moviendo…' : 'Mover persona'}</button></div>
       </div>
     </div>}
   </section>
