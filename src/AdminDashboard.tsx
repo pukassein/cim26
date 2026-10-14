@@ -12,7 +12,7 @@ const db = createClient(
 const logoMarkUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/logo_CIM.PNG'
 const days = ['Lun 02 NOV', 'Mar 03 NOV', 'Mié 04 NOV', 'Jue 05 NOV', 'Vie 06 NOV']
 type Tab = PersonKind | 'program'
-type ProgramItem = { id: string; day: number; date: string; time: string; title: string; detail: string }
+type ProgramItem = { id: string; day: number; date: string; time: string; endTime: string; title: string; detail: string }
 
 function AdminLogo() {
   return <div className="organizer-logo"><img src={logoMarkUrl} alt="CIM26" /></div>
@@ -27,13 +27,14 @@ function ProgramManagement() {
 
   const load = async () => {
     setLoading(true)
-    const result = await db.from('program_items').select('id,event_date,start_time,title,description').order('event_date').order('sort_order')
+    const result = await db.from('program_items').select('id,event_date,start_time,end_time,title,description').order('event_date').order('sort_order')
     if (result.error) setError(result.error.message)
     else setItems((result.data || []).map(item => ({
       id: item.id,
       date: item.event_date,
       day: Math.max(0, Math.round((new Date(`${item.event_date}T00:00:00`).getTime() - new Date('2026-11-02T00:00:00').getTime()) / 86400000)),
       time: item.start_time?.slice(0, 5) || '',
+      endTime: item.end_time?.slice(0, 5) || '',
       title: item.title || '',
       detail: item.description || '',
     })))
@@ -43,7 +44,11 @@ function ProgramManagement() {
   useEffect(() => { void load() }, [])
 
   const update = (id: string, field: keyof ProgramItem, value: string | number) => {
-    setItems(current => current.map(item => item.id === id ? { ...item, [field]: value } : item))
+    setItems(current => current.map(item => {
+      if (item.id !== id) return item
+      if (field === 'day') return { ...item, day: Number(value), date: `2026-11-${String(2 + Number(value)).padStart(2, '0')}` }
+      return { ...item, [field]: value }
+    }))
   }
 
   const add = () => setItems(current => [...current, {
@@ -51,6 +56,7 @@ function ProgramManagement() {
     day: 0,
     date: '2026-11-02',
     time: '09:00',
+    endTime: '10:00',
     title: '',
     detail: '',
   }])
@@ -63,7 +69,7 @@ function ProgramManagement() {
     }
     setSaving(true)
     const results = await Promise.all(items.map(item => {
-      const row = { event_date: item.date || `2026-11-${String(2 + item.day).padStart(2, '0')}`, start_time: item.time || null, title: item.title.trim(), description: item.detail.trim() || null, is_published: true, sort_order: items.indexOf(item) + 1 }
+      const row = { event_date: item.date || `2026-11-${String(2 + item.day).padStart(2, '0')}`, start_time: item.time || null, end_time: item.endTime || null, title: item.title.trim(), description: item.detail.trim() || null, is_published: true, sort_order: items.indexOf(item) + 1 }
       return item.id.startsWith('new-') ? db.from('program_items').insert(row) : db.from('program_items').update(row).eq('id', item.id)
     }))
     const failure = results.find(result => result.error)
@@ -90,7 +96,8 @@ function ProgramManagement() {
     {loading ? <div className="people-empty">Cargando actividades…</div> : items.length ? <div className="program-admin-list">{items.map(item => <div className="program-admin-row" key={item.id}>
       <div className="program-admin-fields">
         <label>Día<select value={item.day} onChange={event => update(item.id, 'day', Number(event.target.value))}>{days.map((day, index) => <option value={index} key={day}>{day}</option>)}</select></label>
-        <label>Hora<input type="time" value={item.time} onChange={event => update(item.id, 'time', event.target.value)} /></label>
+        <label>Inicio<input type="time" value={item.time} onChange={event => update(item.id, 'time', event.target.value)} /></label>
+        <label>Fin<input type="time" value={item.endTime} onChange={event => update(item.id, 'endTime', event.target.value)} /></label>
         <label className="program-title-field">Actividad<input value={item.title} onChange={event => update(item.id, 'title', event.target.value)} /></label>
         <label className="program-detail-field">Detalle<input value={item.detail} onChange={event => update(item.id, 'detail', event.target.value)} /></label>
       </div>
