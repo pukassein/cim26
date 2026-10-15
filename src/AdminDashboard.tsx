@@ -121,8 +121,8 @@ export default function AdminDashboard({ onExit }: { onExit: () => void }) {
 
   const tabs: { key: Tab; label: string; icon: typeof Users }[] = [
     { key: 'speakers', label: 'Ponentes', icon: Users },
-    { key: 'committee', label: 'Comité Científico', icon: Landmark },
-    { key: 'organizing', label: 'Comité de Organización', icon: Users },
+    { key: 'committee', label: 'Comité de Organización', icon: Users },
+    { key: 'organizing', label: 'Comité Científico', icon: Landmark },
     { key: 'program', label: 'Programa', icon: ListChecks },
   ]
 

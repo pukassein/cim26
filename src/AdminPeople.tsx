@@ -71,7 +71,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
   const table = kind === 'speakers' ? 'speakers' : kind === 'committee' ? 'scientific_committee' : 'organizing_committee'
   const singular = kind === 'speakers' ? 'Ponente' : 'Integrante'
-  const title = kind === 'speakers' ? 'Gestionar Ponentes' : kind === 'committee' ? 'Gestionar Comité Científico' : 'Gestionar Comité de Organización'
+  const title = kind === 'speakers' ? 'Gestionar Ponentes' : kind === 'committee' ? 'Gestionar Comité de Organización' : 'Gestionar Comité Científico'
 
   const load = async () => {
     setLoading(true)
@@ -223,8 +223,8 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
       setSelected(new Set())
       setMoveMode(false)
       setMessage(people.length === 1
-        ? `${people[0].name} fue movido al Comité de Organización.`
-        : `${people.length} personas fueron movidas al Comité de Organización.`)
+        ? `${people[0].name} fue movido al Comité Científico.`
+        : `${people.length} personas fueron movidas al Comité Científico.`)
       await load()
       window.setTimeout(() => setMessage(''), 2800)
     } catch (caught) {
@@ -264,7 +264,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `${kind === 'speakers' ? 'ponentes' : kind === 'committee' ? 'comite-cientifico' : 'comite-organizacion'}.csv`
+    link.download = `${kind === 'speakers' ? 'ponentes' : kind === 'committee' ? 'comite-organizacion' : 'comite-cientifico'}.csv`
     link.click()
     URL.revokeObjectURL(link.href)
   }
@@ -277,7 +277,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
         <p>{items.length} {items.length === 1 ? 'registro' : 'registros'} disponibles</p>
       </div>
       <div className="people-panel-actions">
-        {kind === 'speakers' && <button className={`management-toggle${moveMode ? ' active' : ''}`} onClick={toggleMoveMode} aria-label={moveMode ? 'Cerrar modo de selección' : 'Administrar movimiento de ponentes'} aria-pressed={moveMode} title="Mover ponentes al Comité de Organización"><Settings size={18} /></button>}
+        {kind === 'speakers' && <button className={`management-toggle${moveMode ? ' active' : ''}`} onClick={toggleMoveMode} aria-label={moveMode ? 'Cerrar modo de selección' : 'Administrar movimiento de ponentes'} aria-pressed={moveMode} title="Mover ponentes al Comité Científico"><Settings size={18} /></button>}
         <button className="admin-outline" onClick={downloadExcel}><Download size={16} /> Descargar Excel</button>
         <button className="admin-primary" onClick={openNew}><Plus size={17} /> Nuevo {singular}</button>
       </div>
@@ -352,8 +352,8 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     {moving.length > 0 && <div className="confirm-backdrop" role="presentation">
       <div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="move-confirm-title">
         <div className="confirm-icon move-confirm-icon"><ArrowRight size={19} /></div>
-        <h2 id="move-confirm-title">¿Mover {moving.length === 1 ? 'esta persona' : `estas ${moving.length} personas`} al Comité de Organización?</h2>
-        <p>{moving.length === 1 ? <><strong>{moving[0].name || 'Esta persona'}</strong> dejará de aparecer en Ponentes.</> : <>Las personas seleccionadas dejarán de aparecer en Ponentes y pasarán al Comité de Organización.</>}</p>
+        <h2 id="move-confirm-title">¿Mover {moving.length === 1 ? 'esta persona' : `estas ${moving.length} personas`} al Comité Científico?</h2>
+        <p>{moving.length === 1 ? <><strong>{moving[0].name || 'Esta persona'}</strong> dejará de aparecer en Ponentes.</> : <>Las personas seleccionadas dejarán de aparecer en Ponentes y pasarán al Comité Científico.</>}</p>
         <div className="confirm-actions"><button className="admin-quiet" onClick={() => setMoving([])} disabled={busy}>Cancelar</button><button className="admin-primary" onClick={() => void moveToOrganizingCommittee()} disabled={busy}>{busy ? 'Moviendo…' : `Mover ${moving.length === 1 ? 'persona' : 'personas'}`}</button></div>
       </div>
     </div>}
