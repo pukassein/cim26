@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Check, Download, Pencil, Plus, Save, Settings, Trash2, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { createClient } from '@supabase/supabase-js'
 import './people.css'
 
@@ -337,7 +338,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
       <span>{query ? 'Probá con otro nombre o institución.' : `Agregá el primer ${kind === 'speakers' ? 'ponente' : 'integrante'} para comenzar.`}</span>
     </div>}
 
-    {editing && <div className="person-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !busy) setEditing(null) }}>
+    {editing && createPortal(<div className="person-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !busy) setEditing(null) }}>
       <form className="person-modal" onSubmit={save} role="dialog" aria-modal="true" aria-labelledby="person-modal-title">
         <div className="person-modal-head">
           <div>
@@ -365,25 +366,25 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
           <button type="submit" className="admin-primary" disabled={busy}><Save size={16} /> {busy ? 'Guardando…' : 'Guardar'}</button>
         </div>
       </form>
-    </div>}
+    </div>, document.body)}
 
-    {confirming && <div className="confirm-backdrop" role="presentation">
+    {confirming && createPortal(<div className="confirm-backdrop" role="presentation">
       <div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
         <div className="confirm-icon"><Trash2 size={19} /></div>
         <h2 id="confirm-title">¿Está seguro de que desea eliminar este registro?</h2>
         <p>Se eliminará a <strong>{confirming.name || 'esta persona'}</strong> de la lista.</p>
         <div className="confirm-actions"><button className="admin-quiet" onClick={() => setConfirming(null)} disabled={busy}>Cancelar</button><button className="danger-button" onClick={() => void remove()} disabled={busy}>{busy ? 'Eliminando…' : 'Excluir'}</button></div>
       </div>
-    </div>}
+    </div>, document.body)}
 
-    {moving.length > 0 && <div className="confirm-backdrop" role="presentation">
+    {moving.length > 0 && createPortal(<div className="confirm-backdrop" role="presentation">
       <div className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="move-confirm-title">
         <div className="confirm-icon move-confirm-icon"><ArrowRight size={19} /></div>
         <h2 id="move-confirm-title">¿Mover {moving.length === 1 ? 'esta persona' : `estas ${moving.length} personas`} al Comité Científico?</h2>
         <p>{moving.length === 1 ? <><strong>{moving[0].name || 'Esta persona'}</strong> dejará de aparecer en Ponentes.</> : <>Las personas seleccionadas dejarán de aparecer en Ponentes y pasarán al Comité Científico.</>}</p>
         <div className="confirm-actions"><button className="admin-quiet" onClick={() => setMoving([])} disabled={busy}>Cancelar</button><button className="admin-primary" onClick={() => void moveToOrganizingCommittee()} disabled={busy}>{busy ? 'Moviendo…' : `Mover ${moving.length === 1 ? 'persona' : 'personas'}`}</button></div>
       </div>
-    </div>}
+    </div>, document.body)}
   </section>
 }
 

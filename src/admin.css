@@ -36,6 +36,3 @@
 .program-admin-fields { grid-template-columns:140px 105px 105px minmax(180px,1fr) minmax(180px,1fr); }
 @media (max-width:760px) { .program-admin-fields { grid-template-columns:1fr 1fr; } }
 @media (prefers-reduced-motion:reduce) { .organizer-content { animation:none; } }
-
-/* The fixed modal/backdrop must be allowed to escape the content card. */
-.organizer-content { overflow: visible; }
