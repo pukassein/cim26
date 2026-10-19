@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRight, Check, Download, Pencil, Plus, Save, Settings, Trash2, Upload, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowRight, Check, Download, Pencil, Plus, Save, Settings, Trash2, X } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import './people.css'
 
@@ -49,73 +49,6 @@ const emptyPerson = (order: number): Person => ({
   thematic_axis: null,
 })
 
-function parseDelimited(text: string) {
-  const candidates = [';', ',', '\t']
-  const sample = text.split(/\r?\n/).slice(0, 25).join('\n')
-  const countOutsideQuotes = (delimiter: string) => {
-    let count = 0
-    let quoted = false
-    for (let index = 0; index < sample.length; index += 1) {
-      if (sample[index] === '"' && sample[index + 1] === '"') index += 1
-      else if (sample[index] === '"') quoted = !quoted
-      else if (sample[index] === delimiter && !quoted) count += 1
-    }
-    return count
-  }
-  const delimiter = candidates.sort((a, b) => countOutsideQuotes(b) - countOutsideQuotes(a))[0]
-  const rows: string[][] = []
-  let row: string[] = []
-  let value = ''
-  let quoted = false
-
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index]
-    if (character === '"' && quoted && text[index + 1] === '"') { value += '"'; index += 1 }
-    else if (character === '"') quoted = !quoted
-    else if (character === delimiter && !quoted) { row.push(value.trim()); value = '' }
-    else if ((character === '\n' || character === '\r') && !quoted) {
-      if (character === '\r' && text[index + 1] === '\n') index += 1
-      row.push(value.trim()); value = ''
-      if (row.some(Boolean)) rows.push(row)
-      row = []
-    } else value += character
-  }
-  row.push(value.trim())
-  if (row.some(Boolean)) rows.push(row)
-  return rows
-}
-
-function normalize(value: string) {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
-}
-
-function committeeRowsFromCsv(text: string) {
-  let currentAxis: number | null = null
-  let header: string[] | null = null
-  const people: Array<Omit<Person, 'id'>> = []
-
-  for (const row of parseDelimited(text.replace(/^\ufeff/, ''))) {
-    const first = normalize(row[0] || '')
-    const axisMatch = first.match(/^eje\s*(\d+)/)
-    if (axisMatch) { currentAxis = Number(axisMatch[1]); header = null; continue }
-    if (first.includes('nombre') && first.includes('miembro')) { header = row.map(normalize); continue }
-    if (!row[0]?.trim()) continue
-
-    const indexOf = (words: string[], fallback: number) => {
-      const index = header?.findIndex(cell => words.some(word => cell.includes(word))) ?? -1
-      return index >= 0 ? index : fallback
-    }
-    const name = row[indexOf(['nombre'], 0)]?.trim()
-    if (!name || normalize(name).includes('nombre del miembro')) continue
-    const specialty = row[indexOf(['especialidad', 'perfil'], 1)]?.trim() || ''
-    const institution = row[indexOf(['institucion', 'afiliacion'], 2)]?.trim() || ''
-    const axisCell = row[indexOf(['eje'], 3)] || ''
-    const explicitAxis = Number(axisCell.match(/\d+/)?.[0])
-    people.push({ name, specialty, institution, thematic_axis: explicitAxis || currentAxis, sort_order: people.length + 1, is_published: true })
-  }
-  return people
-}
-
 function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase() || '?'
 }
@@ -146,7 +79,6 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [axisFilter, setAxisFilter] = useState('')
-  const importInput = useRef<HTMLInputElement>(null)
 
   const table = kind === 'speakers' ? 'speakers' : kind === 'committee' ? 'scientific_committee' : 'organizing_committee'
   const singular = kind === 'speakers' ? 'Ponente' : 'Integrante'
@@ -358,29 +290,6 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     URL.revokeObjectURL(link.href)
   }
 
-  const importCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-    setError('')
-    try {
-      const rows = committeeRowsFromCsv(await file.text())
-      if (!rows.length) throw new Error('No se encontraron integrantes. Verificá que el archivo conserve las columnas Nombre, Especialidad e Institución.')
-      if (!window.confirm(`Se encontraron ${rows.length} integrantes. ¿Querés agregarlos al Comité Científico?`)) return
-      setBusy(true)
-      const firstOrder = Math.max(0, ...items.map(item => Number(item.sort_order) || 0)) + 1
-      const result = await db.from('organizing_committee').insert(rows.map((row, index) => ({ ...row, sort_order: firstOrder + index })))
-      if (result.error) throw result.error
-      setMessage(`${rows.length} integrantes importados correctamente.`)
-      await load()
-      window.setTimeout(() => setMessage(''), 3500)
-    } catch (caught) {
-      setError(`No se pudo importar el archivo: ${errorMessage(caught)}`)
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return <section className="people-panel" aria-labelledby="people-heading">
     <div className="people-panel-head">
       <div>
@@ -390,7 +299,6 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
       </div>
       <div className="people-panel-actions">
         {kind === 'speakers' && <button className={`management-toggle${moveMode ? ' active' : ''}`} onClick={toggleMoveMode} aria-label={moveMode ? 'Cerrar modo de selección' : 'Administrar movimiento de ponentes'} aria-pressed={moveMode} title="Mover ponentes al Comité Científico"><Settings size={18} /></button>}
-        {kind === 'organizing' && <><input ref={importInput} className="visually-hidden" type="file" accept=".csv,text/csv" onChange={event => void importCsv(event)} /><button className="admin-outline" onClick={() => importInput.current?.click()} disabled={busy}><Upload size={16} /> Importar CSV</button></>}
         <button className="admin-outline" onClick={downloadExcel}><Download size={16} /> Descargar CSV</button>
         <button className="admin-primary" onClick={openNew}><Plus size={17} /> Nuevo {singular}</button>
       </div>
