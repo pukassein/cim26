@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, Check, Download, Pencil, Plus, Save, Settings, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowRight, Check, Download, Pencil, Plus, Save, Settings, Trash2, Upload, X } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import './people.css'
 
@@ -19,7 +19,16 @@ export type Person = {
   photo_url?: string
   sort_order?: number
   is_published?: boolean
+  thematic_axis?: number | null
 }
+
+const thematicAxes = [
+  { number: 1, title: 'Una Salud, Bienestar Humano y Entornos Sostenibles' },
+  { number: 2, title: 'Innovación, Energía, Tecnología y Gestión de Riesgos ante el Cambio Global' },
+  { number: 3, title: 'Economía Circular, Finanzas Sostenibles, Paz, Ética, Justicia e Instituciones Sólidas y Políticas Laborales' },
+  { number: 4, title: 'Educación, Salud Mental y Comunidades Inclusivas' },
+  { number: 5, title: 'Vivienda, Hábitat y Derecho a la Ciudad desde lo Local a lo Global' },
+]
 
 function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message
@@ -37,7 +46,75 @@ const emptyPerson = (order: number): Person => ({
   photo_url: '',
   sort_order: order,
   is_published: true,
+  thematic_axis: null,
 })
+
+function parseDelimited(text: string) {
+  const candidates = [';', ',', '\t']
+  const sample = text.split(/\r?\n/).slice(0, 25).join('\n')
+  const countOutsideQuotes = (delimiter: string) => {
+    let count = 0
+    let quoted = false
+    for (let index = 0; index < sample.length; index += 1) {
+      if (sample[index] === '"' && sample[index + 1] === '"') index += 1
+      else if (sample[index] === '"') quoted = !quoted
+      else if (sample[index] === delimiter && !quoted) count += 1
+    }
+    return count
+  }
+  const delimiter = candidates.sort((a, b) => countOutsideQuotes(b) - countOutsideQuotes(a))[0]
+  const rows: string[][] = []
+  let row: string[] = []
+  let value = ''
+  let quoted = false
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index]
+    if (character === '"' && quoted && text[index + 1] === '"') { value += '"'; index += 1 }
+    else if (character === '"') quoted = !quoted
+    else if (character === delimiter && !quoted) { row.push(value.trim()); value = '' }
+    else if ((character === '\n' || character === '\r') && !quoted) {
+      if (character === '\r' && text[index + 1] === '\n') index += 1
+      row.push(value.trim()); value = ''
+      if (row.some(Boolean)) rows.push(row)
+      row = []
+    } else value += character
+  }
+  row.push(value.trim())
+  if (row.some(Boolean)) rows.push(row)
+  return rows
+}
+
+function normalize(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+}
+
+function committeeRowsFromCsv(text: string) {
+  let currentAxis: number | null = null
+  let header: string[] | null = null
+  const people: Array<Omit<Person, 'id'>> = []
+
+  for (const row of parseDelimited(text.replace(/^\ufeff/, ''))) {
+    const first = normalize(row[0] || '')
+    const axisMatch = first.match(/^eje\s*(\d+)/)
+    if (axisMatch) { currentAxis = Number(axisMatch[1]); header = null; continue }
+    if (first.includes('nombre') && first.includes('miembro')) { header = row.map(normalize); continue }
+    if (!row[0]?.trim()) continue
+
+    const indexOf = (words: string[], fallback: number) => {
+      const index = header?.findIndex(cell => words.some(word => cell.includes(word))) ?? -1
+      return index >= 0 ? index : fallback
+    }
+    const name = row[indexOf(['nombre'], 0)]?.trim()
+    if (!name || normalize(name).includes('nombre del miembro')) continue
+    const specialty = row[indexOf(['especialidad', 'perfil'], 1)]?.trim() || ''
+    const institution = row[indexOf(['institucion', 'afiliacion'], 2)]?.trim() || ''
+    const axisCell = row[indexOf(['eje'], 3)] || ''
+    const explicitAxis = Number(axisCell.match(/\d+/)?.[0])
+    people.push({ name, specialty, institution, thematic_axis: explicitAxis || currentAxis, sort_order: people.length + 1, is_published: true })
+  }
+  return people
+}
 
 function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase() || '?'
@@ -68,6 +145,8 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [axisFilter, setAxisFilter] = useState('')
+  const importInput = useRef<HTMLInputElement>(null)
 
   const table = kind === 'speakers' ? 'speakers' : kind === 'committee' ? 'scientific_committee' : 'organizing_committee'
   const singular = kind === 'speakers' ? 'Ponente' : 'Integrante'
@@ -94,9 +173,12 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase()
-    if (!normalized) return items
-    return items.filter(person => `${person.name} ${person.institution} ${person.role || person.specialty || ''}`.toLowerCase().includes(normalized))
-  }, [items, query])
+    return items.filter(person => {
+      const matchesQuery = !normalized || `${person.name} ${person.institution} ${person.role || person.specialty || ''}`.toLowerCase().includes(normalized)
+      const matchesAxis = kind !== 'organizing' || !axisFilter || String(person.thematic_axis || '') === axisFilter
+      return matchesQuery && matchesAxis
+    })
+  }, [items, query, axisFilter, kind])
 
   const openNew = () => {
     setError('')
@@ -137,7 +219,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
       ? { ...commonData, role: editing.role?.trim() || null }
       : kind === 'committee'
         ? { ...commonData, role: editing.role?.trim() || null, specialty: editing.specialty?.trim() || null }
-        : { name: commonData.name, institution: commonData.institution, sort_order: commonData.sort_order, is_published: commonData.is_published }
+        : { name: commonData.name, institution: commonData.institution, specialty: editing.specialty?.trim() || null, thematic_axis: editing.thematic_axis || null, sort_order: commonData.sort_order, is_published: commonData.is_published }
     let result: { error: { message: string } | null }
     try {
       result = id.startsWith('new-')
@@ -211,6 +293,8 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
       const insertResult = await db.from('organizing_committee').insert(people.map((person, index) => ({
         name: person.name.trim(),
         institution: person.institution?.trim() || '',
+        specialty: person.role?.trim() || null,
+        thematic_axis: null,
         sort_order: firstOrder + index,
         is_published: person.is_published ?? true,
       })))
@@ -257,9 +341,14 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
   }
 
   const downloadExcel = () => {
-    const headers = ['Nombre completo', 'Institución/Afiliación', 'Cargo, área o especialidad', 'URL de imagen', 'Biografía o descripción', 'Orden de visualización']
+    const headers = kind === 'organizing'
+      ? ['Nombre del Miembro', 'Especialidad / Perfil', 'Institución', 'Eje', 'Orden de visualización']
+      : ['Nombre completo', 'Institución/Afiliación', 'Cargo, área o especialidad', 'URL de imagen', 'Biografía o descripción', 'Orden de visualización']
     const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
-    const csv = [headers, ...items.map(person => [person.name, person.institution, person.role || person.specialty, person.photo_url, person.biography, person.sort_order])]
+    const csvRows = kind === 'organizing'
+      ? items.map(person => [person.name, person.specialty, person.institution, person.thematic_axis ? `EJE ${person.thematic_axis}` : '', person.sort_order])
+      : items.map(person => [person.name, person.institution, person.role || person.specialty, person.photo_url, person.biography, person.sort_order])
+    const csv = [headers, ...csvRows]
       .map(row => row.map(escape).join(';')).join('\n')
     const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
@@ -267,6 +356,29 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
     link.download = `${kind === 'speakers' ? 'ponentes' : kind === 'committee' ? 'comite-organizacion' : 'comite-cientifico'}.csv`
     link.click()
     URL.revokeObjectURL(link.href)
+  }
+
+  const importCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setError('')
+    try {
+      const rows = committeeRowsFromCsv(await file.text())
+      if (!rows.length) throw new Error('No se encontraron integrantes. Verificá que el archivo conserve las columnas Nombre, Especialidad e Institución.')
+      if (!window.confirm(`Se encontraron ${rows.length} integrantes. ¿Querés agregarlos al Comité Científico?`)) return
+      setBusy(true)
+      const firstOrder = Math.max(0, ...items.map(item => Number(item.sort_order) || 0)) + 1
+      const result = await db.from('organizing_committee').insert(rows.map((row, index) => ({ ...row, sort_order: firstOrder + index })))
+      if (result.error) throw result.error
+      setMessage(`${rows.length} integrantes importados correctamente.`)
+      await load()
+      window.setTimeout(() => setMessage(''), 3500)
+    } catch (caught) {
+      setError(`No se pudo importar el archivo: ${errorMessage(caught)}`)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return <section className="people-panel" aria-labelledby="people-heading">
@@ -278,13 +390,15 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
       </div>
       <div className="people-panel-actions">
         {kind === 'speakers' && <button className={`management-toggle${moveMode ? ' active' : ''}`} onClick={toggleMoveMode} aria-label={moveMode ? 'Cerrar modo de selección' : 'Administrar movimiento de ponentes'} aria-pressed={moveMode} title="Mover ponentes al Comité Científico"><Settings size={18} /></button>}
-        <button className="admin-outline" onClick={downloadExcel}><Download size={16} /> Descargar Excel</button>
+        {kind === 'organizing' && <><input ref={importInput} className="visually-hidden" type="file" accept=".csv,text/csv" onChange={event => void importCsv(event)} /><button className="admin-outline" onClick={() => importInput.current?.click()} disabled={busy}><Upload size={16} /> Importar CSV</button></>}
+        <button className="admin-outline" onClick={downloadExcel}><Download size={16} /> Descargar CSV</button>
         <button className="admin-primary" onClick={openNew}><Plus size={17} /> Nuevo {singular}</button>
       </div>
     </div>
 
     <div className="people-toolbar">
       <input aria-label="Buscar personas" placeholder="Buscar por nombre o institución" value={query} onChange={event => setQuery(event.target.value)} />
+      {kind === 'organizing' && <select aria-label="Filtrar por eje" value={axisFilter} onChange={event => setAxisFilter(event.target.value)}><option value="">Todos los ejes</option>{thematicAxes.map(axis => <option key={axis.number} value={axis.number}>EJE {axis.number}</option>)}</select>}
       {kind === 'speakers' && moveMode && <>
         <button className="admin-outline select-all-action" onClick={toggleAllVisible} disabled={!visible.length}>{visible.length > 0 && visible.every(person => selected.has(person.id)) ? 'Quitar selección' : 'Seleccionar visibles'}</button>
         <button className="admin-primary bulk-move-action" onClick={() => setMoving(selectedPeople)} disabled={!selectedPeople.length}><ArrowRight size={16} /> Mover seleccionados{selectedPeople.length ? ` (${selectedPeople.length})` : ''}</button>
@@ -302,6 +416,7 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
           <h3 title={person.name}>{person.name || 'Sin nombre'}</h3>
           <p title={person.institution}>{person.institution || 'Sin institución'}</p>
           {(person.role || person.specialty) && <small title={person.role || person.specialty}>{person.role || person.specialty}</small>}
+          {kind === 'organizing' && person.thematic_axis && <b>EJE {person.thematic_axis}</b>}
         </div>
         <div className="person-actions">
           <button className="edit-action" onClick={() => openEdit(person)}><Pencil size={14} /> Editar</button>
@@ -329,6 +444,10 @@ export function PeopleManagement({ kind }: { kind: PersonKind }) {
           {kind === 'speakers' && <>
             <label>Cargo / especialidad<input value={fieldValue(editing, 'role')} onChange={event => updateDraft('role', event.target.value)} /></label>
             <label>URL de foto<input type="url" placeholder="https://…" value={fieldValue(editing, 'photo_url')} onChange={event => updateDraft('photo_url', event.target.value)} /></label>
+          </>}
+          {kind === 'organizing' && <>
+            <label>Especialidad / Perfil<input value={fieldValue(editing, 'specialty')} onChange={event => updateDraft('specialty', event.target.value)} /></label>
+            <label>Eje temático<select value={fieldValue(editing, 'thematic_axis')} onChange={event => updateDraft('thematic_axis', Number(event.target.value) || 0)}><option value="">Sin asignar</option>{thematicAxes.map(axis => <option key={axis.number} value={axis.number}>EJE {axis.number}: {axis.title}</option>)}</select></label>
           </>}
           <label>Orden de visualización<input type="number" min="1" value={fieldValue(editing, 'sort_order')} onChange={event => updateDraft('sort_order', Number(event.target.value))} /></label>
         </div>
