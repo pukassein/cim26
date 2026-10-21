@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ArrowUpRight, BookOpen, CalendarDays, ChevronDown, Globe2, Mail, Menu, Network, Scale, Sparkles, X, Settings, Plus, Trash2, Save, Users, ListChecks, Landmark, Search, Check, ChevronUp } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, CalendarDays, ChevronDown, Globe2, Mail, Menu, Network, Scale, Sparkles, X, Settings, Plus, Trash2, Save, Users, ListChecks, Landmark, Search, Check, ChevronUp } from 'lucide-react'
 import './styles.css'
 import './overrides.css'
 import AdminDashboard from './AdminDashboard'
@@ -30,12 +30,6 @@ const themes = [
   { id:'vivienda-habitat', number:'05', kicker:'VIVIENDA / CIUDADES', title:'Vivienda, Hábitat y Derecho a la Ciudad desde lo Local a lo Global', color:'#32A6A5', soft:'#E4F5F3', icon: Network, topics:['Gestión en entidades públicas','Inversión en infraestructura y servicios urbanos.','Segmentación de mercado.','Politicas de desarrollo regional.','Politicas de desarrollo internacional.','El turismo y el comercio internacional.','Habitad y Desarrollo Urbano.'] },
 ]
 const days = ['Lun 02 NOV','Mar 03 NOV','Mié 04 NOV','Jue 05 NOV','Vie 06 NOV']
-const congressRoute = [
-  { day:'Lunes 2', short:'LUN', faculty:'Facultad de Ciencias y Tecnología', acronym:'FACYT', axes:['02','05'] },
-  { day:'Martes 3', short:'MAR', faculty:'Facultad de Ciencias Contables y Administrativas', acronym:'FCCA', axes:['03'] },
-  { day:'Miércoles 4', short:'MIÉ', faculty:'Facultad de Ciencias Jurídicas', acronym:'FCJ', axes:['03','05'] },
-  { day:'Jueves 5', short:'JUE', faculty:'Facultad de Ciencias de la Salud', acronym:'FACSA', axes:['01','04'] },
-]
 type Speaker = { id:string; name:string; role:string; institution:string; photo:string }
 type ProgramItem = { id:string; day:number; date:string; time:string; endTime:string; title:string; detail:string; faculty:string; track:string; venue:string; activityType:string; confirmationStatus:string }
 type CommitteeMember = { id:string; name:string; role:string; specialty?:string; institution:string; country?:string; biography?:string; photo_url?:string; email?:string; thematic_area_id?:string; is_published?:boolean; sort_order?:number }
@@ -53,22 +47,50 @@ function timeToMinutes(value:string) {
   return Number.isFinite(hours) && Number.isFinite(minutes) ? hours * 60 + minutes : Number.MAX_SAFE_INTEGER
 }
 
-function groupOverlappingProgramItems(items:ProgramItem[]) {
+function groupProgramItemsByStart(items:ProgramItem[]) {
   const sorted = [...items].sort((a,b) => timeToMinutes(a.time) - timeToMinutes(b.time) || timeToMinutes(a.endTime) - timeToMinutes(b.endTime))
-  const groups: ProgramItem[][] = []
-  let groupEnd = -1
+  const groups: { start:string; items:ProgramItem[]; ongoingCount:number }[] = []
   for (const item of sorted) {
-    const start = timeToMinutes(item.time)
-    const end = item.endTime ? timeToMinutes(item.endTime) : start
-    if (!groups.length || start >= groupEnd) {
-      groups.push([item])
-      groupEnd = end
-    } else {
-      groups[groups.length - 1].push(item)
-      groupEnd = Math.max(groupEnd,end)
-    }
+    const current = groups[groups.length - 1]
+    if (current?.start === item.time) current.items.push(item)
+    else groups.push({ start:item.time, items:[item], ongoingCount:sorted.filter(other=>timeToMinutes(other.time)<timeToMinutes(item.time)&&timeToMinutes(other.endTime)>timeToMinutes(item.time)).length })
   }
   return groups
+}
+
+const dayHosts = [
+  { acronym:'FACYT', label:'Día principal · Ciencias y Tecnología' },
+  { acronym:'FCCA', label:'Día principal · Contables y Administrativas' },
+  { acronym:'FCJ', label:'Día principal · Ciencias Jurídicas' },
+  { acronym:'FACSA', label:'Día principal · Ciencias de la Salud' },
+  { acronym:'CIM26', label:'Cierre multidisciplinario' },
+]
+
+function ProgramDay({ items }: { items:ProgramItem[] }) {
+  if (!items.length) return <div className="program-empty"><CalendarDays size={32}/><h3>Programa próximamente</h3><p>Estamos preparando la agenda detallada de esta jornada.</p></div>
+  const groups = groupProgramItemsByStart(items)
+  return <div className="program-items">{groups.map((group,index)=>{const parallel=group.items.length>1||group.ongoingCount>0;return <section className={'program-slot '+(parallel?'program-slot-parallel':'')} key={`${group.start}-${index}`}>{parallel&&<div className="parallel-heading"><span>{group.items.length>1?'Actividades que comienzan al mismo tiempo':'Nueva actividad en otro track'}</span><small>{group.ongoingCount>0?`${group.ongoingCount} ${group.ongoingCount===1?'actividad iniciada antes continúa':'actividades iniciadas antes continúan'} en curso`:'Cada tarjeta indica su facultad y track'}</small></div>}<div className="program-slot-grid">{group.items.map(item=><article className="program-item" key={item.id}><strong>{item.time}{item.endTime&&<><span>—</span>{item.endTime}</>}</strong><div className="program-item-body"><div className="program-item-meta"><span className="faculty-badge">{item.faculty}</span>{item.track&&item.track!=='General'&&<span>{item.track}</span>}<span>{activityTypeLabels[item.activityType]||item.activityType}</span>{item.confirmationStatus==='pending'&&<span className="pending-badge">Por confirmar</span>}</div><h3>{item.title}</h3>{item.detail&&<p>{item.detail}</p>}{item.venue&&<small className="program-venue">{item.venue}</small>}</div></article>)}</div></section>})}</div>
+}
+
+function SchedulePage({ program, onBack }: { program:ProgramItem[]; onBack:()=>void }) {
+  const availableDays = program.map(item=>item.day)
+  const firstDay = availableDays.length ? Math.min(...availableDays) : 0
+  const [selectedDay,setSelectedDay] = useState(firstDay)
+  const [facultyFilter,setFacultyFilter] = useState('all')
+  const dayItems = program.filter(item=>item.day===selectedDay)
+  const faculties = [...new Set(dayItems.map(item=>item.faculty))].sort()
+  const items = facultyFilter==='all' ? dayItems : dayItems.filter(item=>item.faculty===facultyFilter)
+  useEffect(()=>setFacultyFilter('all'),[selectedDay])
+  return <div className="schedule-page">
+    <header className="schedule-topbar"><div className="container"><button className="schedule-back" onClick={onBack}><ArrowLeft size={17}/> Volver al inicio</button><BrandMark/><span>02 — 06 NOV 2026</span></div></header>
+    <main className="schedule-main"><div className="container">
+      <div className="schedule-heading"><div><div className="eyebrow dark-eyebrow"><span/> AGENDA CIM26</div><h1>Cronograma<br/><em>completo.</em></h1></div><div className="schedule-intro"><p>Consultá cada jornada por separado. Las actividades se agrupan por hora de inicio y el cronograma avisa cuando otros tracks siguen en curso.</p><div className="schedule-legend"><span><i className="legend-parallel"/> Actividades simultáneas</span><span><i className="legend-pending"/> Información por confirmar</span></div></div></div>
+      <nav className="day-tabs schedule-day-tabs" aria-label="Elegir día del cronograma">{days.map((label,index)=><button className={selectedDay===index?'active':''} onClick={()=>setSelectedDay(index)} key={label} aria-current={selectedDay===index?'date':undefined}><span>{label.split(' ')[0]}</span>{label.substring(label.indexOf(' ')+1)}<small>{dayHosts[index].acronym}</small></button>)}</nav>
+      <div className="selected-day-context"><div><span>JORNADA SELECCIONADA</span><strong>{days[selectedDay]}</strong></div><p>{dayHosts[selectedDay].label}. También se muestran las actividades paralelas de otras facultades.</p></div>
+      {faculties.length>1&&<div className="faculty-filters" aria-label="Filtrar cronograma por facultad"><button className={facultyFilter==='all'?'active':''} onClick={()=>setFacultyFilter('all')}>Todas</button>{faculties.map(faculty=><button className={facultyFilter===faculty?'active':''} onClick={()=>setFacultyFilter(faculty)} key={faculty}>{faculty}</button>)}</div>}
+      <ProgramDay items={items}/>
+    </div></main>
+  </div>
 }
 
 function BrandMark({ dark=false }: { dark?: boolean }) { return <div className={'brand-mark '+(dark?'dark':'')} aria-label="CIM26"><img src={logoMarkUrl} alt="CIM26"/></div> }
@@ -120,26 +142,24 @@ function LegacyAdmin({ onExit }: { onExit:()=>void }) {
 }
 
 function App() {
-  const [admin,setAdmin] = useState(window.location.hash === '#admin'); const [authenticated,setAuthenticated] = useState(false); const [content,setContent] = useState<Content>(initialContent); const [navVisible,setNavVisible] = useState(false)
+  const [admin,setAdmin] = useState(window.location.hash === '#admin'); const [schedulePage,setSchedulePage] = useState(window.location.hash === '#cronograma'); const [authenticated,setAuthenticated] = useState(false); const [content,setContent] = useState<Content>(initialContent); const [navVisible,setNavVisible] = useState(false)
   useEffect(() => { const onScroll=()=>setNavVisible(window.scrollY>40); const onPointer=(e:PointerEvent)=>{const hero=document.querySelector('.hero') as HTMLElement|null;if(!hero)return;const r=hero.getBoundingClientRect();hero.style.setProperty('--cursor-x',`${(e.clientX-r.left)/r.width*100}%`);hero.style.setProperty('--cursor-y',`${(e.clientY-r.top)/r.height*100}%`)}; document.querySelectorAll('.countdown').forEach(x=>x.remove()); const rule=document.querySelector('.date-rule'); const countdown=document.createElement('div'); countdown.className='countdown'; rule?.after(countdown); const update=()=>{const diff=new Date('2026-11-02T00:00:00-04:00').getTime()-Date.now(); if(diff<=0){countdown.textContent='EVENTO EN CURSO';return} const days=Math.floor(diff/86400000),hours=Math.floor(diff%86400000/3600000),minutes=Math.floor(diff%3600000/60000),seconds=Math.floor(diff%60000/1000); countdown.innerHTML=`<span><b>${days}</b><small>DÍAS</small></span><i>:</i><span><b>${String(hours).padStart(2,'0')}</b><small>HORAS</small></span><i>:</i><span><b>${String(minutes).padStart(2,'0')}</b><small>MIN</small></span><i>:</i><span><b>${String(seconds).padStart(2,'0')}</b><small>SEG</small></span>`}; update(); const timer=window.setInterval(update,1000); window.addEventListener('scroll',onScroll,{passive:true}); window.addEventListener('pointermove',onPointer,{passive:true}); return ()=>{window.removeEventListener('scroll',onScroll);window.removeEventListener('pointermove',onPointer);window.clearInterval(timer);countdown.remove()} },[])
   useEffect(() => { if(admin) window.scrollTo({top:0,behavior:'instant' as ScrollBehavior}) },[admin])
+  useEffect(() => { const syncRoute=()=>setSchedulePage(window.location.hash==='#cronograma'); window.addEventListener('hashchange',syncRoute); return ()=>window.removeEventListener('hashchange',syncRoute) },[])
   useState(() => { loadContent().then(setContent).catch(()=>{}) })
-  const [menuOpen, setMenuOpen] = useState(false); const [day, setDay] = useState(0); const [expandedTheme, setExpandedTheme] = useState<string | null>(null)
-  useEffect(() => { if (content.program.length && !content.program.some(item => item.day === day)) setDay(Math.min(...content.program.map(item => item.day))) }, [content.program])
+  const [menuOpen, setMenuOpen] = useState(false); const [expandedTheme, setExpandedTheme] = useState<string | null>(null)
+  const openSchedule = () => { setMenuOpen(false); setSchedulePage(true); window.location.hash='cronograma'; window.scrollTo({top:0,behavior:'instant' as ScrollBehavior}) }
+  const closeSchedule = () => { setSchedulePage(false); window.location.hash='programa'; window.setTimeout(()=>document.getElementById('programa')?.scrollIntoView(),0) }
   if (admin) return authenticated ? <Admin onExit={()=>{setAuthenticated(false);setAdmin(false); window.location.hash='inicio'; loadContent().then(setContent)}}/> : <AdminPassword onSuccess={()=>setAuthenticated(true)} onExit={()=>{setAdmin(false);window.location.hash='inicio'}}/>
+  if (schedulePage) return <SchedulePage program={content.program} onBack={closeSchedule}/>
   const go = (id: string) => { setMenuOpen(false); document.getElementById(id)?.scrollIntoView({ behavior:'smooth' }) }
-  const dailyProgram = content.program.filter(item=>item.day===day)
-  const programGroups = groupOverlappingProgramItems(dailyProgram)
   return <>
-    <header className={'nav '+(navVisible?'nav-visible':'nav-hidden')}><div className="container nav-inner"><button className="mobile-menu" onClick={()=>setMenuOpen(!menuOpen)} aria-label="Abrir menú">{menuOpen?<X/>:<Menu/>}</button><a href="#inicio" onClick={()=>go('inicio')}><BrandMark/></a><nav className={menuOpen?'open':''}>{[['inicio','Inicio'],['sobre','Sobre CIM26'],['ejes','Ejes Temáticos'],['programa','Programa'],['ponentes','Ponentes'],['cientifico','Comité Científico'],['organizacion','Organización'],['auspiciantes','Auspiciantes'],['contacto','Contacto']].map(([id,label])=><a key={id} href={'#'+id} onClick={(e)=>{e.preventDefault();go(id)}}>{label}</a>)}<Button href="#inscripciones">Inscribirme</Button></nav></div></header>
+    <header className={'nav '+(navVisible?'nav-visible':'nav-hidden')}><div className="container nav-inner"><button className="mobile-menu" onClick={()=>setMenuOpen(!menuOpen)} aria-label="Abrir menú">{menuOpen?<X/>:<Menu/>}</button><a href="#inicio" onClick={()=>go('inicio')}><BrandMark/></a><nav className={menuOpen?'open':''}>{[['inicio','Inicio'],['sobre','Sobre CIM26'],['ejes','Ejes Temáticos'],['programa','Programa'],['ponentes','Ponentes'],['cientifico','Comité Científico'],['organizacion','Organización'],['auspiciantes','Auspiciantes'],['contacto','Contacto']].map(([id,label])=><a key={id} href={id==='programa'?'#cronograma':'#'+id} onClick={(e)=>{e.preventDefault();id==='programa'?openSchedule():go(id)}}>{label}</a>)}<Button href="#inscripciones">Inscribirme</Button></nav></div></header>
     <main>
       <section id="inicio" className="hero"><div className="hero-grid"/><div className="container hero-content"><div className="hero-copy"><div className="eyebrow"><span/> CONGRESO INTERNACIONAL MULTIDISCIPLINARIO</div><h1>cim<span>26</span></h1><p className="hero-title">Ideas que conectan.<br/><em>Conocimiento que transforma.</em></p><p className="hero-meta">Universidad Católica<br/><strong>Campus Alto Paraná</strong></p><div className="hero-actions"><Button href="#inscripciones">Inscribirme</Button><a className="text-link" href="#sobre" onClick={(e)=>{e.preventDefault();go('sobre')}}>Conocer el Congreso <ArrowUpRight size={17}/></a></div></div><div className="hero-date"><div className="date-label">FECHA DEL EVENTO</div><div className="date-big">02 <i>—</i> 06</div><div className="date-month">NOVIEMBRE 2026</div><div className="date-rule"/></div></div><div className="hero-scroll">SCROLL PARA EXPLORAR <ChevronDown size={16}/></div></section>
       <section id="sobre" className="about section"><div className="container about-grid"><div><div className="eyebrow dark-eyebrow"><span/> SOBRE EL CONGRESO</div><h2>Un espacio para<br/><em>pensar en común.</em></h2></div><div className="about-copy"><p>CIM26 es el Congreso Internacional Multidisciplinario de la Universidad Católica, Campus Alto Paraná, que se realizará del 02 al 06 de noviembre de 2026.</p><div className="departmental-note"><strong>Evento de Interés Departamental</strong><span>Declarado mediante la Resolución N.º 070/2026.</span></div><div className="edit-note"><span className="note-line"/><span>Próximamente, más información sobre el congreso.</span></div></div></div></section>
       <section id="ejes" className="themes section"><div className="container"><div className="section-head"><div><div className="eyebrow dark-eyebrow"><span/> CINCO MIRADAS</div><h2>Ejes <em>Temáticos</em></h2></div><p>Una conversación amplia sobre los desafíos que compartimos.</p></div><div className="publication-note"><BookOpen size={25}/><p>El Congreso contará con la publicación de un <strong>libro de resúmenes</strong>, con ISSN y DOI.</p></div><div className="theme-grid">{themes.map(({id,number,kicker,title,color,soft,icon:Icon,topics})=><article className="theme-card" key={id} style={{'--theme':color,'--soft':soft} as React.CSSProperties}><div className="theme-top"><span className="theme-number">{number}</span><Icon size={30} strokeWidth={1.5}/></div><div><div className="theme-kicker">{kicker}</div><h3>{title}</h3></div><button className="theme-expand" aria-expanded={expandedTheme===id} onClick={()=>setExpandedTheme(expandedTheme===id?null:id)}><span>{expandedTheme===id?'Ocultar temas':'Ver temas'}</span><ChevronDown size={17}/></button>{expandedTheme===id&&<div className="theme-topics"><h4>Temas</h4><ul>{topics.map(topic=><li key={topic}>{topic}</li>)}</ul></div>}</article>)}</div></div></section>
-      <section id="programa" className="program section"><div className="container"><div className="section-head"><div><div className="eyebrow dark-eyebrow"><span/> AGENDA</div><h2>El <em>Programa</em></h2></div><p>Una semana para conectar facultades, ejes y disciplinas.</p></div>
-        <div className="program-route-head"><div><span className="route-label">RECORRIDO DEL CONGRESO</span><strong>02 — 06 de noviembre</strong></div><span className="route-note">Horarios según el cronograma de cada facultad</span></div>
-        <div className="program-route">{congressRoute.map((item,index)=><article className="route-card" key={item.acronym}><div className="route-card-top"><span className="route-day">{item.short}</span><span className="route-index">0{index+1}</span></div><div className="route-date">{item.day}</div><h3>{item.faculty}</h3><small>{item.acronym}{index===0?' · DÍA PRINCIPAL':''}</small><div className="route-axes">{item.axes.map(axis=>{const theme=themes.find(t=>t.number===axis)!;return <span key={axis} style={{'--axis-color':theme.color,'--axis-soft':theme.soft} as React.CSSProperties}>EJE {axis}</span>})}</div></article>)}<article className="route-card route-close"><div className="route-card-top"><span className="route-day">VIE</span><span className="route-index">05</span></div><div className="route-date">Viernes 6</div><h3>Día de cierre transversal</h3><small>PREMIACIÓN</small><div className="route-close-mark">✦</div></article></div>
-        <div className="day-tabs">{days.map((d,i)=><button className={i===day?'active':''} onClick={()=>setDay(i)} key={d}><span>{d.split(' ')[0]}</span>{d.substring(d.indexOf(' ')+1)}</button>)}</div>{dailyProgram.length?<div className="program-items">{programGroups.map((group,index)=><section className={'program-slot '+(group.length>1?'program-slot-parallel':'')} key={`${group[0].time}-${index}`}>{group.length>1&&<div className="parallel-heading"><span>Actividades simultáneas</span><small>Elegí el track o facultad que querés seguir</small></div>}<div className="program-slot-grid">{group.map(item=><article className="program-item" key={item.id}><strong>{item.time}{item.endTime&&<><span>—</span>{item.endTime}</>}</strong><div className="program-item-body"><div className="program-item-meta"><span className="faculty-badge">{item.faculty}</span>{item.track&&item.track!=='General'&&<span>{item.track}</span>}<span>{activityTypeLabels[item.activityType]||item.activityType}</span>{item.confirmationStatus==='pending'&&<span className="pending-badge">Por confirmar</span>}</div><h3>{item.title}</h3>{item.detail&&<p>{item.detail}</p>}{item.venue&&<small className="program-venue">{item.venue}</small>}</div></article>)}</div></section>)}</div>:<div className="program-empty"><CalendarDays size={32}/><h3>Programa próximamente</h3><p>Estamos preparando una agenda que conecte ideas, disciplinas y personas.</p></div>}</div></section>
+      <section id="programa" className="program section"><div className="container"><div className="section-head"><div><div className="eyebrow dark-eyebrow"><span/> AGENDA</div><h2>El <em>Programa</em></h2></div><p>Una semana para conectar facultades, ejes y disciplinas.</p></div><div className="program-preview"><div className="program-preview-copy"><span>02 — 06 NOVIEMBRE 2026</span><h3>Todo el cronograma,<br/>en un espacio dedicado.</h3><p>Consultá los horarios por día, identificá actividades simultáneas y seguí el track de cada facultad sin sobrecargar la página principal.</p><a className="button" href="#cronograma" onClick={(event)=>{event.preventDefault();openSchedule()}}>Ver cronograma completo <ArrowUpRight size={17}/></a></div><div className="program-preview-days">{dayHosts.map((item,index)=><div key={item.acronym}><span>0{index+1}</span><strong>{days[index].split(' ')[0]}</strong><small>{item.acronym}</small></div>)}</div></div></div></section>
       <section id="ponentes" className="speakers section"><div className="container speakers-layout"><div className="speakers-heading"><div className="eyebrow"><span/> VOCES QUE INSPIRAN</div><h2>Ponentes</h2></div><div className="speaker-message">{content.speakers.length?<div className="speaker-cards">{content.speakers.map(x=><div className="speaker-card" key={x.id}><SpeakerPhoto src={x.photo} name={x.name}/><div><h3>{x.name}</h3>{x.role&&<p>{x.role}</p>}<small>{x.institution}</small></div></div>)}</div>:<p>Próximamente anunciaremos a nuestros ponentes.</p>}<span className="accent-line"/></div></div></section>
       <section id="inscripciones" className="register"><div className="container"><div className="register-heading"><div><div className="eyebrow dark-eyebrow"><span/> INSCRIPCIONES CIM26</div><h2>Elegí cómo<br/><em>participar.</em></h2></div><p>Podés inscribirte como oyente o enviar un trabajo para presentarlo durante el congreso.</p></div><div className="register-options"><article className="register-option register-option-attendee"><div><span className="register-option-number">01</span><h3>Inscribirse como oyente <small>(sin trabajo para presentar)</small></h3><p>Completá el formulario de pagos para asistir al Congreso Internacional Multidisciplinario.</p><div className="register-details"><strong>Precios Lote 1</strong><span>Estudiantes · 50.000 gs.</span><span>Profesionales · 100.000 gs.</span><small>Lote 1 disponible hasta el 23 de octubre.<br/>Desde el 24 de octubre, el Lote 2 tiene un costo 50% adicional.</small></div></div><Button href={eventConfig.attendeeRegistrationUrl} external>Inscribirme como oyente</Button></article><article className="register-option register-option-work"><div><span className="register-option-number">02</span><h3>Mandar trabajo para presentación</h3><p>Enviá tu trabajo para participar como expositor a través de nuestra plataforma de presentaciones.</p></div><Button href={eventConfig.registrationUrl || '#inscripciones'} external={!!eventConfig.registrationUrl}>{eventConfig.registrationUrl?'Enviar mi trabajo':'Envíos próximamente'}</Button></article></div></div></section>
       <section id="cientifico" className="organization section"><div className="container"><div className="section-head"><div><div className="eyebrow dark-eyebrow"><span/> EQUIPO CIM26</div><h2>Comité<br/><em>Científico</em></h2></div><p>El equipo académico que acompaña el congreso, organizado por eje temático.</p></div><ScientificCommittee members={content.organizing}/></div></section>
