@@ -12,7 +12,7 @@ const db = createClient(
 const logoMarkUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/logo_CIM.PNG'
 const days = ['Lun 02 NOV', 'Mar 03 NOV', 'Mié 04 NOV', 'Jue 05 NOV', 'Vie 06 NOV']
 type Tab = PersonKind | 'program'
-type ProgramItem = { id: string; day: number; date: string; time: string; endTime: string; title: string; detail: string }
+type ProgramItem = { id: string; day: number; date: string; time: string; endTime: string; title: string; detail: string; faculty: string; track: string; venue: string; activityType: string; confirmationStatus: string }
 
 function AdminLogo() {
   return <div className="organizer-logo"><img src={logoMarkUrl} alt="CIM26" /></div>
@@ -27,7 +27,7 @@ function ProgramManagement() {
 
   const load = async () => {
     setLoading(true)
-    const result = await db.from('program_items').select('id,event_date,start_time,end_time,title,description').order('event_date').order('sort_order')
+    const result = await db.from('program_items').select('id,event_date,start_time,end_time,title,description,faculty,track,venue,activity_type,confirmation_status').order('event_date').order('start_time').order('sort_order')
     if (result.error) setError(result.error.message)
     else setItems((result.data || []).map(item => ({
       id: item.id,
@@ -37,6 +37,11 @@ function ProgramManagement() {
       endTime: item.end_time?.slice(0, 5) || '',
       title: item.title || '',
       detail: item.description || '',
+      faculty: item.faculty || 'CIM26',
+      track: item.track || 'General',
+      venue: item.venue || '',
+      activityType: item.activity_type || 'session',
+      confirmationStatus: item.confirmation_status || 'confirmed',
     })))
     setLoading(false)
   }
@@ -59,6 +64,11 @@ function ProgramManagement() {
     endTime: '10:00',
     title: '',
     detail: '',
+    faculty: 'CIM26',
+    track: 'General',
+    venue: '',
+    activityType: 'session',
+    confirmationStatus: 'confirmed',
   }])
 
   const save = async () => {
@@ -69,7 +79,7 @@ function ProgramManagement() {
     }
     setSaving(true)
     const results = await Promise.all(items.map(item => {
-      const row = { event_date: item.date || `2026-11-${String(2 + item.day).padStart(2, '0')}`, start_time: item.time || null, end_time: item.endTime || null, title: item.title.trim(), description: item.detail.trim() || null, is_published: true, sort_order: items.indexOf(item) + 1 }
+      const row = { event_date: item.date || `2026-11-${String(2 + item.day).padStart(2, '0')}`, start_time: item.time || null, end_time: item.endTime || null, title: item.title.trim(), description: item.detail.trim() || null, faculty: item.faculty.trim() || 'CIM26', track: item.track.trim() || 'General', venue: item.venue.trim() || null, activity_type: item.activityType || 'session', confirmation_status: item.confirmationStatus || 'confirmed', is_published: true, sort_order: items.indexOf(item) + 1 }
       return item.id.startsWith('new-') ? db.from('program_items').insert(row) : db.from('program_items').update(row).eq('id', item.id)
     }))
     const failure = results.find(result => result.error)
@@ -100,6 +110,11 @@ function ProgramManagement() {
         <label>Fin<input type="time" value={item.endTime} onChange={event => update(item.id, 'endTime', event.target.value)} /></label>
         <label className="program-title-field">Actividad<input value={item.title} onChange={event => update(item.id, 'title', event.target.value)} /></label>
         <label className="program-detail-field">Detalle<input value={item.detail} onChange={event => update(item.id, 'detail', event.target.value)} /></label>
+        <label>Facultad<input value={item.faculty} onChange={event => update(item.id, 'faculty', event.target.value)} /></label>
+        <label>Track<input value={item.track} onChange={event => update(item.id, 'track', event.target.value)} /></label>
+        <label>Ubicación<input value={item.venue} onChange={event => update(item.id, 'venue', event.target.value)} /></label>
+        <label>Tipo<select value={item.activityType} onChange={event => update(item.id, 'activityType', event.target.value)}><option value="session">Actividad</option><option value="registration">Acreditación</option><option value="keynote">Conferencia magistral</option><option value="scientific_session">Trabajos científicos</option><option value="break">Receso</option><option value="lunch">Almuerzo</option><option value="poster">Pósteres</option><option value="conference">Conferencia</option><option value="business_session">Espacio empresarial</option><option value="workshop">Taller</option><option value="technical_visit">Visita técnica</option><option value="thesis_showcase">TFG</option><option value="awards">Reconocimientos</option><option value="closing">Cierre</option></select></label>
+        <label>Estado<select value={item.confirmationStatus} onChange={event => update(item.id, 'confirmationStatus', event.target.value)}><option value="confirmed">Confirmado</option><option value="pending">Por confirmar</option></select></label>
       </div>
       <button className="program-delete" onClick={() => void remove(item)} aria-label="Eliminar actividad"><Trash2 size={17} /></button>
     </div>)}</div> : <div className="people-empty"><div className="empty-icon"><CalendarDays size={20} /></div><strong>Todavía no hay actividades.</strong><span>Agregá la primera actividad para comenzar.</span></div>}
