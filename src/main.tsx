@@ -154,7 +154,22 @@ function App() {
   if (schedulePage) return <SchedulePage program={content.program} onBack={closeSchedule}/>
   const go = (id: string) => { setMenuOpen(false); document.getElementById(id)?.scrollIntoView({ behavior:'smooth' }) }
   return <>
-    <header className={'nav '+(navVisible?'nav-visible':'nav-hidden')}><div className="container nav-inner"><button className="mobile-menu" onClick={()=>setMenuOpen(!menuOpen)} aria-label="Abrir menú">{menuOpen?<X/>:<Menu/>}</button><a href="#inicio" onClick={()=>go('inicio')}><BrandMark/></a><nav className={menuOpen?'open':''}>{[['inicio','Inicio'],['sobre','Sobre CIM26'],['ejes','Ejes Temáticos'],['programa','Programa'],['ponentes','Ponentes'],['cientifico','Comité Científico'],['organizacion','Organización'],['auspiciantes','Auspiciantes'],['contacto','Contacto']].map(([id,label])=><a key={id} href={id==='programa'?'#cronograma':'#'+id} onClick={(e)=>{e.preventDefault();id==='programa'?openSchedule():go(id)}}>{label}</a>)}<Button href="#inscripciones">Inscribirme</Button></nav></div></header>
+    <header className={'nav '+(navVisible?'nav-visible':'nav-hidden')}>
+      <div className="container nav-inner">
+        <a className="nav-brand" href="#inicio" onClick={(event)=>{event.preventDefault();go('inicio')}} aria-label="CIM26 — Inicio">
+          <BrandMark/>
+          <span className="nav-brand-copy">
+            <strong>CIM26</strong>
+            <small>Congreso Internacional Multidisciplinario</small>
+          </span>
+        </a>
+        <nav className={menuOpen?'open':''} aria-label="Navegación principal">
+          {[['inicio','Inicio'],['sobre','Sobre CIM26'],['ejes','Ejes Temáticos'],['programa','Programa'],['ponentes','Ponentes'],['cientifico','Comité Científico'],['organizacion','Organización'],['auspiciantes','Auspiciantes'],['contacto','Contacto']].map(([id,label])=><a key={id} href={id==='programa'?'#cronograma':'#'+id} onClick={(e)=>{e.preventDefault();id==='programa'?openSchedule():go(id)}}>{label}</a>)}
+          <a className="button nav-cta" href="#inscripciones" onClick={()=>setMenuOpen(false)}>Inscribirme <ArrowUpRight size={17}/></a>
+        </nav>
+        <button className="mobile-menu" onClick={()=>setMenuOpen(!menuOpen)} aria-label={menuOpen?'Cerrar menú':'Abrir menú'} aria-expanded={menuOpen}>{menuOpen?<X/>:<Menu/>}</button>
+      </div>
+    </header>
     <main>
       <section id="inicio" className="hero"><div className="hero-grid"/><div className="container hero-content"><div className="hero-copy"><div className="eyebrow"><span/> CONGRESO INTERNACIONAL MULTIDISCIPLINARIO</div><h1>cim<span>26</span></h1><p className="hero-title">Ideas que conectan.<br/><em>Conocimiento que transforma.</em></p><p className="hero-meta">Universidad Católica<br/><strong>Campus Alto Paraná</strong></p><div className="hero-actions"><Button href="#inscripciones">Inscribirme</Button><a className="text-link" href="#sobre" onClick={(e)=>{e.preventDefault();go('sobre')}}>Conocer el Congreso <ArrowUpRight size={17}/></a></div></div><div className="hero-date"><div className="date-label">FECHA DEL EVENTO</div><div className="date-big">02 <i>—</i> 06</div><div className="date-month">NOVIEMBRE 2026</div><div className="date-rule"/></div></div><div className="hero-scroll">SCROLL PARA EXPLORAR <ChevronDown size={16}/></div></section>
       <section id="sobre" className="about section"><div className="container about-grid"><div><div className="eyebrow dark-eyebrow"><span/> SOBRE EL CONGRESO</div><h2>Un espacio para<br/><em>pensar en común.</em></h2></div><div className="about-copy"><p>CIM26 es el Congreso Internacional Multidisciplinario de la Universidad Católica, Campus Alto Paraná, que se realizará del 02 al 06 de noviembre de 2026.</p><div className="departmental-note"><strong>Evento de Interés Departamental</strong><span>Declarado mediante la Resolución N.º 070/2026.</span></div><div className="edit-note"><span className="note-line"/><span>Próximamente, más información sobre el congreso.</span></div></div></div></section>
