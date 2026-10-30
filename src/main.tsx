@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ArrowLeft, ArrowUpRight, BookOpen, CalendarDays, ChevronDown, Globe2, Mail, Menu, Network, Scale, Sparkles, X, Settings, Plus, Trash2, Save, Users, ListChecks, Landmark, Search, Check, ChevronUp } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, CalendarDays, ChevronDown, Download, FileImage, FileSliders, Globe2, Mail, Menu, Network, Scale, Sparkles, X, Settings, Plus, Trash2, Save, Users, ListChecks, Landmark, Search, Check, ChevronUp } from 'lucide-react'
 import './styles.css'
 import './overrides.css'
 import AdminDashboard from './AdminDashboard'
@@ -21,6 +21,8 @@ const sponsorParanaCountryClubUrl = 'https://i0.wp.com/logoroga.com/wp-content/u
 const sponsorUniversiaTrainoUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/universiatraino%20back.jpeg'
 const sponsorSudamerisUrl = 'https://upload.wikimedia.org/wikipedia/commons/b/be/Sudameris_Logo.png'
 const sponsorHinetUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/hinetlogo.jpeg'
+const posterTemplateUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/Poster%20CIM26_v2%20(1).pptx'
+const slidesTemplateUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/Modelo%20Diapositiva%20-%20CIM%202026.pptx'
 
 const themes = [
   { id:'salud-planetaria', number:'01', kicker:'SALUD / PLANETARY HEALTH', title:'Salud Planetaria, Bienestar Humano y Entornos Sostenibles', color:'#58A44B', soft:'#EAF4E4', icon: Globe2, topics:['Sostenibilidad ambiental.','Salud ocupacional','Responsabilidad social empresarial.','Costos Ambientales','Inversión en salud publica','Financiamiento de proyectos sostenibles','Marketing en la era global','Comportamiento del Consumidor','Logistica y Transporte','Economía y Desarrollo Regional'] },
@@ -142,7 +144,7 @@ function LegacyAdmin({ onExit }: { onExit:()=>void }) {
 }
 
 function App() {
-  const [admin,setAdmin] = useState(window.location.hash === '#admin'); const [schedulePage,setSchedulePage] = useState(window.location.hash === '#cronograma'); const [authenticated,setAuthenticated] = useState(false); const [content,setContent] = useState<Content>(initialContent); const [navVisible,setNavVisible] = useState(false)
+  const [admin,setAdmin] = useState(window.location.hash === '#admin'); const [schedulePage,setSchedulePage] = useState(window.location.hash === '#cronograma'); const [authenticated,setAuthenticated] = useState(false); const [content,setContent] = useState<Content>(initialContent); const [navVisible,setNavVisible] = useState(false); const [templatesNotice,setTemplatesNotice] = useState(true)
   useEffect(() => { const onScroll=()=>setNavVisible(window.scrollY>40); const onPointer=(e:PointerEvent)=>{const hero=document.querySelector('.hero') as HTMLElement|null;if(!hero)return;const r=hero.getBoundingClientRect();hero.style.setProperty('--cursor-x',`${(e.clientX-r.left)/r.width*100}%`);hero.style.setProperty('--cursor-y',`${(e.clientY-r.top)/r.height*100}%`)}; document.querySelectorAll('.countdown').forEach(x=>x.remove()); const rule=document.querySelector('.date-rule'); const countdown=document.createElement('div'); countdown.className='countdown'; rule?.after(countdown); const update=()=>{const diff=new Date('2026-11-02T00:00:00-04:00').getTime()-Date.now(); if(diff<=0){countdown.textContent='EVENTO EN CURSO';return} const days=Math.floor(diff/86400000),hours=Math.floor(diff%86400000/3600000),minutes=Math.floor(diff%3600000/60000),seconds=Math.floor(diff%60000/1000); countdown.innerHTML=`<span><b>${days}</b><small>DÍAS</small></span><i>:</i><span><b>${String(hours).padStart(2,'0')}</b><small>HORAS</small></span><i>:</i><span><b>${String(minutes).padStart(2,'0')}</b><small>MIN</small></span><i>:</i><span><b>${String(seconds).padStart(2,'0')}</b><small>SEG</small></span>`}; update(); const timer=window.setInterval(update,1000); window.addEventListener('scroll',onScroll,{passive:true}); window.addEventListener('pointermove',onPointer,{passive:true}); return ()=>{window.removeEventListener('scroll',onScroll);window.removeEventListener('pointermove',onPointer);window.clearInterval(timer);countdown.remove()} },[])
   useEffect(() => { if(admin) window.scrollTo({top:0,behavior:'instant' as ScrollBehavior}) },[admin])
   useEffect(() => { const syncRoute=()=>setSchedulePage(window.location.hash==='#cronograma'); window.addEventListener('hashchange',syncRoute); return ()=>window.removeEventListener('hashchange',syncRoute) },[])
@@ -164,7 +166,7 @@ function App() {
           </span>
         </a>
         <nav className={menuOpen?'open':''} aria-label="Navegación principal">
-          {[['inicio','Inicio'],['sobre','Sobre CIM26'],['ejes','Ejes Temáticos'],['programa','Programa'],['ponentes','Ponentes'],['cientifico','Comité Científico'],['organizacion','Organización'],['auspiciantes','Auspiciantes'],['contacto','Contacto']].map(([id,label])=><a key={id} href={id==='programa'?'#cronograma':'#'+id} onClick={(e)=>{e.preventDefault();id==='programa'?openSchedule():go(id)}}>{label}</a>)}
+          {[['inicio','Inicio'],['sobre','Sobre CIM26'],['ejes','Ejes Temáticos'],['programa','Programa'],['plantillas','Plantillas'],['ponentes','Ponentes'],['cientifico','Comité Científico'],['organizacion','Organización'],['auspiciantes','Auspiciantes'],['contacto','Contacto']].map(([id,label])=><a key={id} href={id==='programa'?'#cronograma':'#'+id} onClick={(e)=>{e.preventDefault();id==='programa'?openSchedule():go(id)}}>{label}</a>)}
           <a className="button nav-cta" href="#inscripciones" onClick={()=>setMenuOpen(false)}>Inscribirme <ArrowUpRight size={17}/></a>
         </nav>
         <button className="mobile-menu" onClick={()=>setMenuOpen(!menuOpen)} aria-label={menuOpen?'Cerrar menú':'Abrir menú'} aria-expanded={menuOpen}>{menuOpen?<X/>:<Menu/>}</button>
@@ -214,11 +216,35 @@ function App() {
           </div>
         </div>
       </section>
+      <section id="plantillas" className="templates section">
+        <div className="container">
+          <div className="section-head templates-heading">
+            <div>
+              <div className="eyebrow dark-eyebrow"><span/> RECURSOS PARA EXPOSITORES</div>
+              <h2>Plantillas <em>oficiales</em></h2>
+            </div>
+            <p>Descargá los modelos oficiales de CIM26 y prepará tu presentación con la identidad visual del congreso.</p>
+          </div>
+          <div className="template-grid">
+            <article className="template-card template-card-poster">
+              <div className="template-card-icon"><FileImage size={30}/></div>
+              <div className="template-card-copy"><span>FORMATO POWERPOINT · PPTX</span><h3>Modelo de póster CIM26</h3><p>Plantilla oficial para preparar y presentar tu póster científico.</p></div>
+              <a className="template-download" href={posterTemplateUrl} download="Modelo-Poster-CIM26.pptx"><Download size={18}/> Descargar póster</a>
+            </article>
+            <article className="template-card template-card-slides">
+              <div className="template-card-icon"><FileSliders size={30}/></div>
+              <div className="template-card-copy"><span>FORMATO POWERPOINT · PPTX</span><h3>Modelo de diapositivas CIM26</h3><p>Plantilla oficial para preparar tu exposición oral y mantener un formato uniforme.</p></div>
+              <a className="template-download" href={slidesTemplateUrl} download="Modelo-Diapositivas-CIM26.pptx"><Download size={18}/> Descargar diapositivas</a>
+            </article>
+          </div>
+        </div>
+      </section>
       <section id="cientifico" className="organization section"><div className="container"><div className="section-head"><div><div className="eyebrow dark-eyebrow"><span/> EQUIPO CIM26</div><h2>Comité<br/><em>Científico</em></h2></div><p>El equipo académico que acompaña el congreso, organizado por eje temático.</p></div><ScientificCommittee members={content.organizing}/></div></section>
       <section id="organizacion" className="organization organization-management section"><div className="container"><div className="section-head"><div><div className="eyebrow dark-eyebrow"><span/> EQUIPO CIM26</div><h2>Comité de<br/><em>Organización</em></h2></div><p>El equipo responsable de hacer posible este encuentro.</p></div><div className="organization-grid">{content.committee.map(member => <article className="organization-member" key={member.id}><h3>{member.name}</h3>{(member.role||member.specialty)&&<strong>{member.role||member.specialty}</strong>}<p>{member.institution}</p></article>)}</div>{!content.committee.length && <div className="organization-empty">Próximamente anunciaremos al comité de organización.</div>}</div></section>
       <section id="auspiciantes" className="sponsors section"><div className="container"><div className="section-head"><div><div className="eyebrow dark-eyebrow"><span/> APOYO INSTITUCIONAL</div><h2>Auspiciantes</h2></div></div><div className="sponsor-grid"><div className="sponsor-logo"><img src={sponsorAtsUrl} alt="ATS" loading="lazy" decoding="async" /></div><div className="sponsor-logo"><img src={sponsorAtlasUrl} alt="Atlas Inversiones" loading="lazy" decoding="async" /></div><div className="sponsor-logo sponsor-logo-papyrus"><img src={sponsorPapyrusUrl} alt="Papyrus — Con visión de futuro" loading="lazy" decoding="async" /></div><div className="sponsor-logo"><img src={sponsorParanaCountryClubUrl} alt="Paraná Country Club" loading="lazy" decoding="async" /></div><div className="sponsor-logo"><img src={sponsorUniversiaTrainoUrl} alt="Universia Traino" loading="lazy" decoding="async" /></div><div className="sponsor-logo"><img src={sponsorSudamerisUrl} alt="Sudameris" loading="lazy" decoding="async" /></div><div className="sponsor-logo"><img src={sponsorHinetUrl} alt="Hinet" loading="lazy" decoding="async" /></div></div></div></section>
       <section id="contacto" className="contact section"><div className="container contact-grid"><div><div className="eyebrow dark-eyebrow"><span/> HABLEMOS</div><h2>Contacto e<br/><em>Información</em></h2></div><div className="contact-info"><p>Para consultas y más información sobre CIM26, escribinos.</p><a className="email" href={'mailto:'+eventConfig.email}><Mail size={20}/>{eventConfig.email}</a><div className="institution"><strong>{eventConfig.institution}</strong><span>{eventConfig.campus}</span><span>Aula Magna</span><span>{eventConfig.dates}</span></div></div></div></section>
     </main>
+    {templatesNotice&&<aside className="templates-notice" role="status" aria-live="polite"><div className="templates-notice-icon"><Check size={20}/></div><div><strong>¡Las plantillas ya están listas!</strong><span>Descargá los modelos oficiales de póster y diapositivas para CIM26.</span></div><button className="templates-notice-link" onClick={()=>{setTemplatesNotice(false);go('plantillas')}}>Ver plantillas</button><button className="templates-notice-close" onClick={()=>setTemplatesNotice(false)} aria-label="Cerrar aviso"><X size={18}/></button></aside>}
     <footer><div className="container footer-top"><div><BrandMark dark/><p>{eventConfig.name}<br/>{eventConfig.institution} · {eventConfig.campus}</p></div><div className="footer-date">02—06<br/><span>NOVIEMBRE 2026</span></div><div className="footer-email"><a href={'mailto:'+eventConfig.email}>{eventConfig.email}</a><button className="admin-link" onClick={()=>{setAdmin(true);window.location.hash='admin'}}><Settings size={14}/> Administrar contenido</button><span>© 2026 CIM26 — Universidad Católica, Campus Alto Paraná.</span></div></div><div className="gradient-line"/></footer>
   </>
 }

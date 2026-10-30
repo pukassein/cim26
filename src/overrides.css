@@ -80,6 +80,48 @@
 
 .publication-note svg { color: #702275; flex: 0 0 auto; }
 .publication-note p { margin: 0; font: 16px/1.4 'Space Grotesk'; }
+
+.templates { position: relative; background: #0b0b0c; color: #fff; overflow: hidden; }
+.templates::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 12% 10%, #09a9de26, transparent 32%), radial-gradient(circle at 88% 88%, #d3147b2e, transparent 34%); }
+.templates .container { position: relative; }
+.templates-heading .dark-eyebrow { color: #ddd; }
+.templates-heading .dark-eyebrow span { background: #09a9de; }
+.templates-heading h2 { color: #fff; }
+.templates-heading h2 em { color: #ffd225; }
+.templates-heading > p { color: #aaa; }
+.template-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.template-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 24px; min-height: 305px; padding: 32px; border: 1px solid #ffffff25; background: #ffffff0c; backdrop-filter: blur(10px); }
+.template-card-poster { border-top: 4px solid #d3147b; }
+.template-card-slides { border-top: 4px solid #09a9de; }
+.template-card-icon { display: grid; place-items: center; width: 58px; height: 58px; background: #fff; color: #702275; }
+.template-card-slides .template-card-icon { color: #087fa9; }
+.template-card-copy span { color: #aaa; font-size: 9px; font-weight: 800; letter-spacing: 1.3px; }
+.template-card-copy h3 { margin: 14px 0 10px; font: 600 28px/1.08 'Space Grotesk'; letter-spacing: -1px; }
+.template-card-copy p { max-width: 390px; margin: 0; color: #bbb; font-size: 14px; line-height: 1.55; }
+.template-download { display: inline-flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; align-self: end; min-height: 54px; padding: 14px 18px; background: #fff; color: #080808; font-size: 13px; font-weight: 800; transition: transform .2s, background .2s; }
+.template-download:hover, .template-download:focus-visible { transform: translateY(-2px); background: #ffd225; }
+
+.templates-notice { position: fixed; right: 24px; bottom: 24px; z-index: 50; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 14px; width: min(690px, calc(100% - 48px)); padding: 16px; border: 1px solid #ddd; border-left: 5px solid #73ad3c; background: #fff; box-shadow: 0 20px 60px #0003; animation: templates-notice-in .45s ease both; }
+.templates-notice-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #e9f5e1; color: #4e8d27; }
+.templates-notice strong, .templates-notice span { display: block; }
+.templates-notice strong { margin-bottom: 3px; font: 700 15px 'Space Grotesk'; }
+.templates-notice span { color: #666; font-size: 12px; line-height: 1.35; }
+.templates-notice-link { border: 0; background: #080808; color: #fff; padding: 12px 15px; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.templates-notice-link:hover { background: #702275; }
+.templates-notice-close { display: grid; place-items: center; border: 0; background: transparent; color: #777; padding: 8px; cursor: pointer; }
+.templates-notice-close:hover { color: #080808; }
+@keyframes templates-notice-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 800px) {
+  .template-grid { grid-template-columns: 1fr; }
+  .template-card { min-height: 270px; padding: 24px; gap: 18px; }
+  .template-card-copy h3 { font-size: 24px; }
+  .templates-notice { right: 12px; bottom: 12px; grid-template-columns: auto minmax(0, 1fr) auto; width: calc(100% - 24px); }
+  .templates-notice-link { grid-column: 1 / -1; width: 100%; }
+  .templates-notice-close { grid-column: 3; grid-row: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) { .templates-notice { animation: none; } }
 .organization { background: #fff; }
 .organization .section-head { margin-bottom: 30px; }
 .organization-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 9px; }
