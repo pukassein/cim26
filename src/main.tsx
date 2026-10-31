@@ -22,7 +22,7 @@ const sponsorUniversiaTrainoUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/stor
 const sponsorSudamerisUrl = 'https://upload.wikimedia.org/wikipedia/commons/b/be/Sudameris_Logo.png'
 const sponsorHinetUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/hinetlogo.jpeg'
 const posterTemplateUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/Poster%20CIM26_v2%20(1).pptx'
-const slidesTemplateUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/Modelo%20Diapositiva%20-%20CIM%202026.pptx'
+const slidesTemplateUrl = 'https://qbkjuubbinvetvpgxzrb.supabase.co/storage/v1/object/public/CIM26/Modelo%20Diapositiva%20-%20CIM%202026%20(1).pptx'
 
 const themes = [
   { id:'salud-planetaria', number:'01', kicker:'SALUD / PLANETARY HEALTH', title:'Salud Planetaria, Bienestar Humano y Entornos Sostenibles', color:'#58A44B', soft:'#EAF4E4', icon: Globe2, topics:['Sostenibilidad ambiental.','Salud ocupacional','Responsabilidad social empresarial.','Costos Ambientales','Inversión en salud publica','Financiamiento de proyectos sostenibles','Marketing en la era global','Comportamiento del Consumidor','Logistica y Transporte','Economía y Desarrollo Regional'] },
@@ -41,7 +41,7 @@ const initialContent: Content = { speakers:[], program:[], committee:[], organiz
 async function loadContent(): Promise<Content> { if (!supabaseConfigured) return initialContent; const [speakers,program,committee,organizing] = await Promise.all([supabase.from('speakers').select('id,name,institution,photo_url').eq('is_published',true).order('sort_order'),supabase.from('program_items').select('id,event_date,start_time,end_time,title,description,faculty,track,venue,activity_type,confirmation_status').eq('is_published',true).order('event_date').order('start_time').order('sort_order'),supabase.from('scientific_committee').select('*').eq('is_published',true).order('sort_order'),supabase.from('organizing_committee').select('*').eq('is_published',true).order('sort_order')]); return { speakers:(speakers.data||[]).map(x=>({...x,role:'',photo:x.photo_url||''})), program:(program.data||[]).map(x=>({...x,day:Math.max(0,Math.round((new Date(x.event_date+'T00:00:00').getTime()-new Date('2026-11-02T00:00:00').getTime())/86400000)),time:x.start_time?.slice(0,5)||'',endTime:x.end_time?.slice(0,5)||'',detail:x.description||'',faculty:x.faculty||'CIM26',track:x.track||'General',venue:x.venue||'',activityType:x.activity_type||'session',confirmationStatus:x.confirmation_status||'confirmed'})), committee:committee.data||[], organizing:organizing.data||[]} }
 
 const activityTypeLabels: Record<string,string> = {
-  registration:'Acreditación', keynote:'Conferencia magistral', scientific_session:'Trabajos científicos', break:'Receso', lunch:'Almuerzo', poster:'Pósteres', conference:'Conferencia', business_session:'Espacio empresarial', workshop:'Taller', technical_visit:'Visita técnica', thesis_showcase:'TFG', awards:'Reconocimientos', closing:'Cierre', session:'Actividad',
+  registration:'Acreditación', keynote:'Conferencia magistral', scientific_session:'Trabajos científicos', break:'Receso', lunch:'Almuerzo', poster:'Pósteres', conference:'Conferencia', business_session:'Espacio empresarial', workshop:'Taller', technical_visit:'Visita técnica', thesis_showcase:'TFG', panel:'Panel', awards:'Reconocimientos', closing:'Cierre', session:'Actividad',
 }
 
 function timeToMinutes(value:string) {
