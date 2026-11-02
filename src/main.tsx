@@ -39,6 +39,7 @@ type CommitteeMember = { id:string; name:string; role:string; specialty?:string;
 type OrganizingMember = { id:string; name:string; institution:string; specialty?:string; thematic_axis?:number|null; sort_order?:number; is_published?:boolean }
 type Content = { speakers:Speaker[]; program:ProgramItem[]; oralPresentations:OralPresentation[]; committee:CommitteeMember[]; organizing:OrganizingMember[] }
 const initialContent: Content = { speakers:[], program:[], oralPresentations:[], committee:[], organizing:[] }
+const normalizeOralRoom = (room:string) => room === 'Sala 21' ? 'Aula Magna' : room === 'Taller B' ? 'Taller A' : room
 async function loadContent(): Promise<Content> {
   if (!supabaseConfigured) return initialContent
   const [speakers,program,oral,committee,organizing] = await Promise.all([
@@ -51,7 +52,7 @@ async function loadContent(): Promise<Content> {
   return {
     speakers:(speakers.data||[]).map(x=>({...x,role:'',photo:x.photo_url||''})),
     program:(program.data||[]).map(x=>({...x,day:Math.max(0,Math.round((new Date(x.event_date+'T00:00:00').getTime()-new Date('2026-11-02T00:00:00').getTime())/86400000)),time:x.start_time?.slice(0,5)||'',endTime:x.end_time?.slice(0,5)||'',detail:x.description||'',faculty:x.faculty||'CIM26',track:x.track||'General',venue:x.venue||'',activityType:x.activity_type||'session',confirmationStatus:x.confirmation_status||'confirmed'})),
-    oralPresentations:(oral.data||[]).map(x=>({id:x.id,date:x.event_date,time:x.start_time?.slice(0,5)||'',endTime:x.end_time?.slice(0,5)||'',submissionId:x.submission_id,title:x.title,authors:x.authors,institution:x.institution||'',room:x.room,evaluators:x.evaluators||'',sortOrder:x.sort_order||0})),
+    oralPresentations:(oral.data||[]).map(x=>({id:x.id,date:x.event_date,time:x.start_time?.slice(0,5)||'',endTime:x.end_time?.slice(0,5)||'',submissionId:x.submission_id,title:x.title,authors:x.authors,institution:x.institution||'',room:normalizeOralRoom(x.room||''),evaluators:x.evaluators||'',sortOrder:x.sort_order||0})),
     committee:committee.data||[],
     organizing:organizing.data||[],
   }
@@ -93,7 +94,7 @@ function ProgramDay({ items, onOpenOral }: { items:ProgramItem[]; onOpenOral?:()
 
 function OralPresentationsSchedule({ presentations }: { presentations:OralPresentation[] }) {
   const [roomFilter,setRoomFilter] = useState('all')
-  const rooms = ['Sala 21','Taller B']
+  const rooms = ['Aula Magna','Taller A']
   const times = [...new Set(presentations.map(item=>item.time))].sort((a,b)=>timeToMinutes(a)-timeToMinutes(b))
   const visible = roomFilter==='all' ? presentations : presentations.filter(item=>item.room===roomFilter)
   return <section className="oral-schedule" aria-labelledby="oral-schedule-heading">

@@ -58,7 +58,7 @@ values
    'FACYT', 'General', null, 'break', 'confirmed', 'Cronograma Seminario FACYT 2026.xlsx - Cronograma.csv', 104, true),
   (date '2026-11-02', time '14:00', time '16:00', 'Presentaciones de Trabajos Científicos',
    '12 trabajos en dos salas simultáneas. Cada presentación dispone de 15 minutos y 5 minutos para preguntas.',
-   'FACYT', 'Presentaciones orales', 'Sala 21 / Taller B', 'scientific_session', 'confirmed', 'Cronograma Seminario FACYT 2026.xlsx - Cronograma.csv', 105, true),
+   'FACYT', 'Presentaciones orales', 'Aula Magna / Taller A', 'scientific_session', 'confirmed', 'Cronograma Seminario FACYT 2026.xlsx - Cronograma.csv', 105, true),
   (date '2026-11-02', time '16:00', time '17:00', 'Exposición de Pósteres Científicos', null,
    'FACYT', 'General', null, 'poster', 'confirmed', 'Cronograma Seminario FACYT 2026.xlsx - Cronograma.csv', 106, true),
   (date '2026-11-02', time '17:00', time '17:30', 'De Corea del Sur al Paraguay: matricería y manufactura avanzada, el camino hacia la Industria 4.0',
