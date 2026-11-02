@@ -34,11 +34,28 @@ const themes = [
 const days = ['Lun 02 NOV','Mar 03 NOV','Mié 04 NOV','Jue 05 NOV','Vie 06 NOV']
 type Speaker = { id:string; name:string; role:string; institution:string; photo:string }
 type ProgramItem = { id:string; day:number; date:string; time:string; endTime:string; title:string; detail:string; faculty:string; track:string; venue:string; activityType:string; confirmationStatus:string }
+type OralPresentation = { id:string; date:string; time:string; endTime:string; submissionId:number; title:string; authors:string; institution:string; room:string; evaluators:string; sortOrder:number }
 type CommitteeMember = { id:string; name:string; role:string; specialty?:string; institution:string; country?:string; biography?:string; photo_url?:string; email?:string; thematic_area_id?:string; is_published?:boolean; sort_order?:number }
 type OrganizingMember = { id:string; name:string; institution:string; specialty?:string; thematic_axis?:number|null; sort_order?:number; is_published?:boolean }
-type Content = { speakers:Speaker[]; program:ProgramItem[]; committee:CommitteeMember[]; organizing:OrganizingMember[] }
-const initialContent: Content = { speakers:[], program:[], committee:[], organizing:[] }
-async function loadContent(): Promise<Content> { if (!supabaseConfigured) return initialContent; const [speakers,program,committee,organizing] = await Promise.all([supabase.from('speakers').select('id,name,institution,photo_url').eq('is_published',true).order('sort_order'),supabase.from('program_items').select('id,event_date,start_time,end_time,title,description,faculty,track,venue,activity_type,confirmation_status').eq('is_published',true).order('event_date').order('start_time').order('sort_order'),supabase.from('scientific_committee').select('*').eq('is_published',true).order('sort_order'),supabase.from('organizing_committee').select('*').eq('is_published',true).order('sort_order')]); return { speakers:(speakers.data||[]).map(x=>({...x,role:'',photo:x.photo_url||''})), program:(program.data||[]).map(x=>({...x,day:Math.max(0,Math.round((new Date(x.event_date+'T00:00:00').getTime()-new Date('2026-11-02T00:00:00').getTime())/86400000)),time:x.start_time?.slice(0,5)||'',endTime:x.end_time?.slice(0,5)||'',detail:x.description||'',faculty:x.faculty||'CIM26',track:x.track||'General',venue:x.venue||'',activityType:x.activity_type||'session',confirmationStatus:x.confirmation_status||'confirmed'})), committee:committee.data||[], organizing:organizing.data||[]} }
+type Content = { speakers:Speaker[]; program:ProgramItem[]; oralPresentations:OralPresentation[]; committee:CommitteeMember[]; organizing:OrganizingMember[] }
+const initialContent: Content = { speakers:[], program:[], oralPresentations:[], committee:[], organizing:[] }
+async function loadContent(): Promise<Content> {
+  if (!supabaseConfigured) return initialContent
+  const [speakers,program,oral,committee,organizing] = await Promise.all([
+    supabase.from('speakers').select('id,name,institution,photo_url').eq('is_published',true).order('sort_order'),
+    supabase.from('program_items').select('id,event_date,start_time,end_time,title,description,faculty,track,venue,activity_type,confirmation_status').eq('is_published',true).order('event_date').order('start_time').order('sort_order'),
+    supabase.from('oral_presentations').select('id,event_date,start_time,end_time,submission_id,title,authors,institution,room,evaluators,sort_order').eq('is_published',true).order('start_time').order('sort_order'),
+    supabase.from('scientific_committee').select('*').eq('is_published',true).order('sort_order'),
+    supabase.from('organizing_committee').select('*').eq('is_published',true).order('sort_order'),
+  ])
+  return {
+    speakers:(speakers.data||[]).map(x=>({...x,role:'',photo:x.photo_url||''})),
+    program:(program.data||[]).map(x=>({...x,day:Math.max(0,Math.round((new Date(x.event_date+'T00:00:00').getTime()-new Date('2026-11-02T00:00:00').getTime())/86400000)),time:x.start_time?.slice(0,5)||'',endTime:x.end_time?.slice(0,5)||'',detail:x.description||'',faculty:x.faculty||'CIM26',track:x.track||'General',venue:x.venue||'',activityType:x.activity_type||'session',confirmationStatus:x.confirmation_status||'confirmed'})),
+    oralPresentations:(oral.data||[]).map(x=>({id:x.id,date:x.event_date,time:x.start_time?.slice(0,5)||'',endTime:x.end_time?.slice(0,5)||'',submissionId:x.submission_id,title:x.title,authors:x.authors,institution:x.institution||'',room:x.room,evaluators:x.evaluators||'',sortOrder:x.sort_order||0})),
+    committee:committee.data||[],
+    organizing:organizing.data||[],
+  }
+}
 
 const activityTypeLabels: Record<string,string> = {
   registration:'Acreditación', keynote:'Conferencia magistral', scientific_session:'Trabajos científicos', break:'Receso', lunch:'Almuerzo', poster:'Pósteres', conference:'Conferencia', business_session:'Espacio empresarial', workshop:'Taller', technical_visit:'Visita técnica', thesis_showcase:'TFG', panel:'Panel', awards:'Reconocimientos', closing:'Cierre', session:'Actividad',
@@ -68,17 +85,31 @@ const dayHosts = [
   { acronym:'CIM26', label:'Cierre multidisciplinario' },
 ]
 
-function ProgramDay({ items }: { items:ProgramItem[] }) {
+function ProgramDay({ items, onOpenOral }: { items:ProgramItem[]; onOpenOral?:()=>void }) {
   if (!items.length) return <div className="program-empty"><CalendarDays size={32}/><h3>Programa próximamente</h3><p>Estamos preparando la agenda detallada de esta jornada.</p></div>
   const groups = groupProgramItemsByStart(items)
-  return <div className="program-items">{groups.map((group,index)=>{const parallel=group.items.length>1||group.ongoingCount>0;return <section className={'program-slot '+(parallel?'program-slot-parallel':'')} key={`${group.start}-${index}`}>{parallel&&<div className="parallel-heading"><span>{group.items.length>1?'Actividades que comienzan al mismo tiempo':'Nueva actividad en otro track'}</span><small>{group.ongoingCount>0?`${group.ongoingCount} ${group.ongoingCount===1?'actividad iniciada antes continúa':'actividades iniciadas antes continúan'} en curso`:'Cada tarjeta indica su facultad y track'}</small></div>}<div className="program-slot-grid">{group.items.map(item=><article className="program-item" key={item.id}><strong>{item.time}{item.endTime&&<><span>—</span>{item.endTime}</>}</strong><div className="program-item-body"><div className="program-item-meta"><span className="faculty-badge">{item.faculty}</span>{item.track&&item.track!=='General'&&<span>{item.track}</span>}<span>{activityTypeLabels[item.activityType]||item.activityType}</span>{item.confirmationStatus==='pending'&&<span className="pending-badge">Por confirmar</span>}</div><h3>{item.title}</h3>{item.detail&&<p>{item.detail}</p>}{item.venue&&<small className="program-venue">{item.venue}</small>}</div></article>)}</div></section>})}</div>
+  return <div className="program-items">{groups.map((group,index)=>{const parallel=group.items.length>1||group.ongoingCount>0;return <section className={'program-slot '+(parallel?'program-slot-parallel':'')} key={`${group.start}-${index}`}>{parallel&&<div className="parallel-heading"><span>{group.items.length>1?'Actividades que comienzan al mismo tiempo':'Nueva actividad en otro track'}</span><small>{group.ongoingCount>0?`${group.ongoingCount} ${group.ongoingCount===1?'actividad iniciada antes continúa':'actividades iniciadas antes continúan'} en curso`:'Cada tarjeta indica su facultad y track'}</small></div>}<div className="program-slot-grid">{group.items.map(item=><article className="program-item" key={item.id}><strong>{item.time}{item.endTime&&<><span>—</span>{item.endTime}</>}</strong><div className="program-item-body"><div className="program-item-meta"><span className="faculty-badge">{item.faculty}</span>{item.track&&item.track!=='General'&&<span>{item.track}</span>}<span>{activityTypeLabels[item.activityType]||item.activityType}</span>{item.confirmationStatus==='pending'&&<span className="pending-badge">Por confirmar</span>}</div><h3>{item.title}</h3>{item.detail&&<p>{item.detail}</p>}{item.venue&&<small className="program-venue">{item.venue}</small>}{onOpenOral&&item.date==='2026-11-02'&&item.activityType==='scientific_session'&&<button className="oral-detail-button" onClick={onOpenOral}>Ver las 12 presentaciones orales <ArrowUpRight size={15}/></button>}</div></article>)}</div></section>})}</div>
 }
 
-function SchedulePage({ program, onBack }: { program:ProgramItem[]; onBack:()=>void }) {
+function OralPresentationsSchedule({ presentations }: { presentations:OralPresentation[] }) {
+  const [roomFilter,setRoomFilter] = useState('all')
+  const rooms = ['Sala 21','Taller B']
+  const times = [...new Set(presentations.map(item=>item.time))].sort((a,b)=>timeToMinutes(a)-timeToMinutes(b))
+  const visible = roomFilter==='all' ? presentations : presentations.filter(item=>item.room===roomFilter)
+  return <section className="oral-schedule" aria-labelledby="oral-schedule-heading">
+    <div className="oral-schedule-intro"><div><span>PRESENTACIONES ORALES · FACYT</span><h2 id="oral-schedule-heading">Comunicaciones científicas</h2><p>Lunes 02 de noviembre · 14:00–16:00 · Intervalos de 20 minutos: 15 minutos de presentación y 5 minutos de preguntas.</p></div><strong>{presentations.length} trabajos<br/><small>6 por sala</small></strong></div>
+    <div className="oral-room-filters" aria-label="Filtrar por sala"><button className={roomFilter==='all'?'active':''} onClick={()=>setRoomFilter('all')}>Ambas salas</button>{rooms.map(room=><button className={roomFilter===room?'active':''} onClick={()=>setRoomFilter(room)} key={room}>{room}</button>)}</div>
+    <div className="oral-evaluators">{rooms.filter(room=>roomFilter==='all'||roomFilter===room).map(room=>{const evaluator=presentations.find(item=>item.room===room)?.evaluators;return <article key={room}><span>{room}</span><p><strong>Evaluadores</strong>{evaluator}</p></article>})}</div>
+    <div className="oral-timeline">{times.map(time=>{const slot=visible.filter(item=>item.time===time).sort((a,b)=>a.room.localeCompare(b.room));return <div className="oral-slot" key={time}><div className="oral-slot-time"><strong>{time}</strong><span>{slot[0]?.endTime}</span></div><div className="oral-slot-presentations">{slot.map(item=><article className="oral-presentation-card" key={item.id}><div><span>{item.room}</span><strong>ID {item.submissionId}</strong></div><h3>{item.title}</h3><p>{item.authors}</p>{item.institution&&<small>{item.institution}</small>}</article>)}</div></div>})}</div>
+  </section>
+}
+
+function SchedulePage({ program, oralPresentations, onBack }: { program:ProgramItem[]; oralPresentations:OralPresentation[]; onBack:()=>void }) {
   const availableDays = program.map(item=>item.day)
   const firstDay = availableDays.length ? Math.min(...availableDays) : 0
   const [selectedDay,setSelectedDay] = useState(firstDay)
   const [facultyFilter,setFacultyFilter] = useState('all')
+  const [scheduleMode,setScheduleMode] = useState<'general'|'oral'>('general')
   const dayItems = program.filter(item=>item.day===selectedDay)
   const faculties = [...new Set(dayItems.map(item=>item.faculty))].sort()
   const items = facultyFilter==='all' ? dayItems : dayItems.filter(item=>item.faculty===facultyFilter)
@@ -87,10 +118,13 @@ function SchedulePage({ program, onBack }: { program:ProgramItem[]; onBack:()=>v
     <header className="schedule-topbar"><div className="container"><button className="schedule-back" onClick={onBack}><ArrowLeft size={17}/> Volver al inicio</button><BrandMark/><span>02 — 06 NOV 2026</span></div></header>
     <main className="schedule-main"><div className="container">
       <div className="schedule-heading"><div><div className="eyebrow dark-eyebrow"><span/> AGENDA CIM26</div><h1>Cronograma<br/><em>completo.</em></h1></div><div className="schedule-intro"><p>Consultá cada jornada por separado. Las actividades se agrupan por hora de inicio y el cronograma avisa cuando otros tracks siguen en curso.</p><div className="schedule-legend"><span><i className="legend-parallel"/> Actividades simultáneas</span><span><i className="legend-pending"/> Información por confirmar</span></div></div></div>
-      <nav className="day-tabs schedule-day-tabs" aria-label="Elegir día del cronograma">{days.map((label,index)=><button className={selectedDay===index?'active':''} onClick={()=>setSelectedDay(index)} key={label} aria-current={selectedDay===index?'date':undefined}><span>{label.split(' ')[0]}</span>{label.substring(label.indexOf(' ')+1)}<small>{dayHosts[index].acronym}</small></button>)}</nav>
-      <div className="selected-day-context"><div><span>JORNADA SELECCIONADA</span><strong>{days[selectedDay]}</strong></div><p>{dayHosts[selectedDay].label}. También se muestran las actividades paralelas de otras facultades.</p></div>
-      {faculties.length>1&&<div className="faculty-filters" aria-label="Filtrar cronograma por facultad"><button className={facultyFilter==='all'?'active':''} onClick={()=>setFacultyFilter('all')}>Todas</button>{faculties.map(faculty=><button className={facultyFilter===faculty?'active':''} onClick={()=>setFacultyFilter(faculty)} key={faculty}>{faculty}</button>)}</div>}
-      <ProgramDay items={items}/>
+      <nav className="schedule-mode-tabs" aria-label="Tipo de cronograma"><button className={scheduleMode==='general'?'active':''} onClick={()=>setScheduleMode('general')}>Programa general</button><button className={scheduleMode==='oral'?'active':''} onClick={()=>setScheduleMode('oral')}>Presentaciones orales <span>{oralPresentations.length}</span></button></nav>
+      {scheduleMode==='general'?<>
+        <nav className="day-tabs schedule-day-tabs" aria-label="Elegir día del cronograma">{days.map((label,index)=><button className={selectedDay===index?'active':''} onClick={()=>setSelectedDay(index)} key={label} aria-current={selectedDay===index?'date':undefined}><span>{label.split(' ')[0]}</span>{label.substring(label.indexOf(' ')+1)}<small>{dayHosts[index].acronym}</small></button>)}</nav>
+        <div className="selected-day-context"><div><span>JORNADA SELECCIONADA</span><strong>{days[selectedDay]}</strong></div><p>{dayHosts[selectedDay].label}. También se muestran las actividades paralelas de otras facultades.</p></div>
+        {faculties.length>1&&<div className="faculty-filters" aria-label="Filtrar cronograma por facultad"><button className={facultyFilter==='all'?'active':''} onClick={()=>setFacultyFilter('all')}>Todas</button>{faculties.map(faculty=><button className={facultyFilter===faculty?'active':''} onClick={()=>setFacultyFilter(faculty)} key={faculty}>{faculty}</button>)}</div>}
+        <ProgramDay items={items} onOpenOral={()=>setScheduleMode('oral')}/>
+      </>:<OralPresentationsSchedule presentations={oralPresentations}/>}
     </div></main>
   </div>
 }
@@ -153,7 +187,7 @@ function App() {
   const openSchedule = () => { setMenuOpen(false); setSchedulePage(true); window.location.hash='cronograma'; window.scrollTo({top:0,behavior:'instant' as ScrollBehavior}) }
   const closeSchedule = () => { setSchedulePage(false); window.location.hash='programa'; window.setTimeout(()=>document.getElementById('programa')?.scrollIntoView(),0) }
   if (admin) return authenticated ? <Admin onExit={()=>{setAuthenticated(false);setAdmin(false); window.location.hash='inicio'; loadContent().then(setContent)}}/> : <AdminPassword onSuccess={()=>setAuthenticated(true)} onExit={()=>{setAdmin(false);window.location.hash='inicio'}}/>
-  if (schedulePage) return <SchedulePage program={content.program} onBack={closeSchedule}/>
+  if (schedulePage) return <SchedulePage program={content.program} oralPresentations={content.oralPresentations} onBack={closeSchedule}/>
   const go = (id: string) => { setMenuOpen(false); document.getElementById(id)?.scrollIntoView({ behavior:'smooth' }) }
   return <>
     <header className={'nav '+(navVisible?'nav-visible':'nav-hidden')}>
